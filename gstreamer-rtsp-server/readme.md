@@ -1,4 +1,4 @@
-# Gstreamer RTSP consumer
+# Gstreamer RTSP Server
 To create an RTSP server run the setup script then run the python script with these commands:
 
 > source venv/bin/activate  
