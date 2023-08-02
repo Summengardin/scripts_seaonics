@@ -78,8 +78,8 @@ CUDA_VER=11.4 make -C nvdsinfer_custom_impl_Yolo --silent
 rm deepstream_app_config.txt
 rm config_infer_primary_yoloV8.txt
 
-cp ../deepstream_app_config.txt .
-cp ../config_infer_primary_yoloV8.txt .
+cp ../config/deepstream_app_config.txt .
+cp ../config/config_infer_primary_yoloV8.txt .
 
 cd ../
 cp $2 ./DeepStream-Yolo/labels.txt
