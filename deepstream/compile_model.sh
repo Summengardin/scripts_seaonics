@@ -1,11 +1,18 @@
 #!/bin/bash
 
-FILE=./$1
-if ! [ -f "$FILE" ]; then
+if ! [ -f "$1" ]; then
     echo "The model $FILE was not found"
     exit
 fi
 
+if ! [ -f "$2" ]; then
+    echo "The model $FILE was not found"
+    exit
+fi
+
+if [ -d "./DeepStream-Yolo" ]; then
+    rm -rf ./DeepStream-Yolo
+fi
 
 # Install deps
 sudo apt install -y \
@@ -63,8 +70,6 @@ cd ../DeepStream-Yolo
 cp ../ultralytics/yolov8_model.cfg ./model.cfg
 cp ../ultralytics/yolov8_model.wts ./model.wts
 rm ./labels.txt
-touch ./labels.txt
-echo Landing > ./labels.txt
 
 rm -rf ../ultralytics
 
@@ -76,5 +81,11 @@ rm config_infer_primary_yoloV8.txt
 cp ../deepstream_app_config.txt .
 cp ../config_infer_primary_yoloV8.txt .
 
+cd ../
+cp $2 ./DeepStream-Yolo/labels.txt
+
+CLASSES=$(expr $(wc -l < ./DeepStream-Yolo/labels.txt) + 1)
+
+sed -i "s/<CLASS_CT>/$CLASSES/" ./DeepStream-Yolo/config_infer_primary_yoloV8.txt
 
 echo cd into DeepStream-Yolo and run the pipeline with deepstream-app -c deepstream_app_config.txt
