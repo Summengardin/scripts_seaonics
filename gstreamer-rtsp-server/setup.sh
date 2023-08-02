@@ -26,3 +26,7 @@ echo Creating python virtual environment
 python3 -m venv venv
 source venv/bin/activate
 pip install pycairo PyGObject
+
+if [ "$1" == "basler" ]; then
+    bash basler_setup.sh
+fi
