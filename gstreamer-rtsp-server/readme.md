@@ -2,7 +2,7 @@
 To create an RTSP server run the setup script then run the python script with these commands:
 
 > source venv/bin/activate  
-> python3 main.py <source>
+> python3 main.py <rtsp_source>
 
 ## Sources
 * test: Test-source
