@@ -1,0 +1,3 @@
+#!/bin/bash
+
+gst-launch-1.0 pylonsrc cam::ExposureTime=20000 cam::Gain=10.3 ! "video/x-raw,width=1920,height=1080,framerate=10/1,format=GRAY8" ! videoconvert ! nvvideoconvert ! m.sink_0 nvstreammux name=m batch-size=1 width=1024 height=768 ! nvinfer config-file-path=/home/seaonics/docs/gst-inference/config_infer_primary_yoloV8.txt batch-size=1 unique-id=1 ! nvvideoconvert ! nvdsosd ! nvegltransform ! nveglglessink sync=0
