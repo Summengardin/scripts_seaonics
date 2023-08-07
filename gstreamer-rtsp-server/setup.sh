@@ -6,7 +6,9 @@ sudo apt-get install -y \
 libcairo2-dev \
 libxt-dev \
 libgirepository1.0-dev \
-gir1.2-gst-rtsp-server-1.0
+gir1.2-gst-rtsp-server-1.0 \
+python3-pip \
+python3-venv
 
 echo Creating python virtual environment
 python3 -m venv venv

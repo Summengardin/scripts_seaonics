@@ -15,4 +15,5 @@ gstreamer1.0-alsa \
 gstreamer1.0-gl \
 gstreamer1.0-gtk3 \
 gstreamer1.0-qt5 \
-gstreamer1.0-pulseaudio
+gstreamer1.0-pulseaudio \
+ffmpeg

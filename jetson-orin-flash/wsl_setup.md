@@ -50,6 +50,13 @@ command doesn't work on the Orin, append the following to the Orins ~/.bashrc fi
 > export PATH="/usr/local/cuda-{version}/bin:$PATH"
 > export LD_LIBRARY_PATH="/usr/local/cuda-{version}/lib64:$LD_LIBRARY_PATH"
 
+# Step 7: gst environment configs
+Append
+> export LD_PRELOAD=/usr/lib/aarch64-linux-gnu/libgomp.so.1  
+to ~/.bashrc, then run 
+> source ~/.bashrc
+or reboot
+
 # Troubleshooting
 ## Terminal won't open
 If the terminal won't open after flashing and installing jetpack on the orin go into language settings and change the language.
@@ -57,3 +64,7 @@ For some reason the locale settings seem to be corrupted during flashing
 
 If that doesn't work, ssh into the Orin and update the /usr/bin/gnome-terminal file to point to the correct python version
 If `python3 --version` says ex. 3.9.1 change the hashbang to python3.9 on the first line
+
+## avdec_h264 element not found
+Ensure that you have done step 7
+Then try running [the purge cache script](../scripts/purge_cache.sh)
