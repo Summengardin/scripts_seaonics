@@ -1,4 +1,6 @@
 #!/bin/bash
 
-bash ../scripts/install_gstreamer.sh
-bash ../scripts/basler_setup.sh
+cd ../scripts
+
+bash install_gstreamer.sh
+bash basler_setup.sh

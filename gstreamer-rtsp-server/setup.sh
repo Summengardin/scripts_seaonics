@@ -16,5 +16,6 @@ source venv/bin/activate
 pip install pycairo PyGObject
 
 if [ "$1" == "basler" ]; then
-    bash ../scripts/basler_setup.sh
+    cd ../scripts
+    bash basler_setup.sh
 fi
