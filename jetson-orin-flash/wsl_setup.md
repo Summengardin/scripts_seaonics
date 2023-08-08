@@ -57,6 +57,9 @@ to ~/.bashrc, then run
 > source ~/.bashrc
 or reboot
 
+# Step 8: Power mode
+In the upper right hand corner of the Orin UI change the power-mode to 50W and reboot
+
 # Troubleshooting
 ## Terminal won't open
 If the terminal won't open after flashing and installing jetpack on the orin go into language settings and change the language.

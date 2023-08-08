@@ -15,5 +15,5 @@ Example:
 > bash compile_model.sh examples/resnet/yolov8s.pt examples/resnet/labels.txt
 
 
-Once compilation of the model is complete, cd into the DeepStream-Yolo directory and run 
+Once compilation of the model is complete, cd into the out directory and run 
 > deepstream-app -c deepstream_app_config.txt
