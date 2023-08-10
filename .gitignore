@@ -3,4 +3,5 @@
 **/ultralytics
 **/nvdsinfer_custom_impl_Yolo
 **/out
+**/__pycache__
 **/gst-shark/gst-shark
