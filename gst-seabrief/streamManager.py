@@ -26,3 +26,6 @@ class StreamManager:
         self.streams[id] = input
         self.server.attach()
         return id
+    
+    def list_devices(self):
+        return []

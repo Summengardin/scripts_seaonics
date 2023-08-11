@@ -5,7 +5,6 @@ from typing import Tuple
 import gi
 gi.require_version('Gst', '1.0')
 from gi.repository import Gst, GLib
-from rtspStreamFactory import create_stream
 
 loop = GLib.MainLoop()
 Gst.init(None)
@@ -13,13 +12,15 @@ Gst.init(None)
 def parse_args() -> Tuple[str]:
     parser = argparse.ArgumentParser()
     parser.add_argument('mqtt_url')
+    parser.add_argument('system_id')
     args = parser.parse_args()
-    return args.mqtt_url
+    return args.mqtt_url, args.system_id
 
 if __name__ == "__main__":
-    mqtt_host = parse_args()
-    mqtt = create_client(mqtt_host)
     streamManager = StreamManager()
-    stream = streamManager.create_stream("baide")
-    print(stream)
+    
+    mqtt_host, system_id = parse_args()
+    mqtt = create_client(mqtt_host, system_id, streamManager)
+
+
     loop.run()
