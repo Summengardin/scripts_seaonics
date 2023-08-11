@@ -34,7 +34,7 @@ class StreamManager:
             stream = self.__create_basler_stream(device)
         
         else:
-            raise Exception(f"No input type \"{source}\" supported")
+            raise Exception(f"No source type \"{source}\" supported")
         
         self.server.get_mount_points().add_factory(f"/{id}", stream)
         self.streams[id] = input
@@ -51,7 +51,7 @@ class StreamManager:
     
 
     def __create_v4l2_stream(self, device: str):
-        pipeline = f"v4l2src device={device} ! mjpeg=1 enable-max-performance=true disable-dpb=true ! nvvidconv ! nvv4l2h264enc ! rtph264pay pt=96 name=pay0"
+        pipeline = f"v4l2src device={device} ! nvv4l2decoder mjpeg=1 enable-max-performance=true disable-dpb=true ! nvvidconv ! nvv4l2h264enc ! rtph264pay pt=96 name=pay0"
         return self.__make_factory(pipeline)
 
 

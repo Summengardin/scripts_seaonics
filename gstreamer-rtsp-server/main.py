@@ -25,7 +25,7 @@ class VideoServerRTSP:
         Gst.init(None)
 
         if source == "usb_cam":
-            pipeline = "v4l2src device=/dev/video0 ! mjpeg=1 enable-max-performance=true disable-dpb=true ! nvvidconv ! nvv4l2h264enc ! rtph264pay pt=96 name=pay0"
+            pipeline = "v4l2src device=/dev/video0 ! nvv4l2decoder mjpeg=1 enable-max-performance=true disable-dpb=true ! nvvidconv ! nvv4l2h264enc ! rtph264pay pt=96 name=pay0"
         elif source == "basler":
             #pipeline = "pylonsrc ! video/x-raw(memory:NVMM), width=1280 , height=720 ! nvvidconv ! nvv4l2h264enc ! rtph264pay pt=96 name=pay0"
             pipeline = "pylonsrc ! video/x-raw, width=1280 , height=720, format=(string)YUY2, framerate=60/1 ! nvvidconv ! nvv4l2h264enc enable-full-frame=true ! rtph264pay pt=96 name=pay0"
