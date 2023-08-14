@@ -5,6 +5,7 @@ from pypylon import pylon
 from os import listdir
 from os.path import isdir
 from re import findall
+import cv2 
 
 class RTSPStreamFactory:
     def __init__(self):
@@ -27,7 +28,9 @@ class RTSPStreamFactory:
                     for path in paths:
                         # TODO find out how to validate that a path/camera works
                         path = f"/dev/{path}"
-                        devices.append({'model': device_name, 'path': path})
+                        cam = cv2.VideoCapture(path)
+                        if cam.isOpened():
+                            devices.append({'model': device_name, 'path': path})
         return devices
     
     def __list_basler_devices(self):        

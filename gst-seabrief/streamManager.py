@@ -75,7 +75,6 @@ class StreamManager(RTSPStreamFactory):
             del self.__streams[id]
         
         self.__streams[id] = Stream(terminate, source, device)
-        print(self.__streams.keys())
         self.server.attach()
         return id
 
