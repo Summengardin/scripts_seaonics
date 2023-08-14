@@ -5,6 +5,7 @@ from paho.mqtt.packettypes import PacketTypes
 from paho.mqtt.properties import Properties
 from typing import Callable
 import os
+from pipelineBuilder import PipelineConfig
 
 def on_connect(client, userdata, flags, rc):
     print("Connected with result code "+str(rc))
@@ -42,9 +43,7 @@ def create_consumer(system_id: str, sm: StreamManager) -> Callable[[Client, any,
         print(msg.topic+" "+str(parsed))
         if request_type == 'start_stream':
             try:
-                source = parsed.get("source")
-                device = parsed.get("device")
-                stream_id = sm.create_stream(source, device)
+                stream_id = sm.create_stream(PipelineConfig(parsed))
                 payload = json.dumps({'stream_id': str(stream_id), 'url': f'rtsp://{os.environ.ip}:{os.environ.port}/{stream_id}'})
             except Exception as e:
                 payload = json.dumps({'error': str(e)})
