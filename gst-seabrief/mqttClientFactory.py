@@ -4,6 +4,7 @@ from paho.mqtt.client import MQTTMessage, Client, MQTTv5
 from paho.mqtt.packettypes import PacketTypes
 from paho.mqtt.properties import Properties
 from typing import Callable
+import os
 
 def on_connect(client, userdata, flags, rc):
     print("Connected with result code "+str(rc))
@@ -44,11 +45,15 @@ def create_consumer(system_id: str, sm: StreamManager) -> Callable[[Client, any,
                 source = parsed.get("source")
                 device = parsed.get("device")
                 stream_id = sm.create_stream(source, device)
-                payload = json.dumps({'stream_id': str(stream_id)})
+                payload = json.dumps({'stream_id': str(stream_id), 'url': f'rtsp://{os.environ.ip}:{os.environ.port}/{stream_id}'})
             except Exception as e:
                 payload = json.dumps({'error': str(e)})
         elif request_type == 'list_devices':
-            payload = json.dumps({'devices': sm.list_devices()})
+            payload = json.dumps({'basler_devices': sm.list_basler_devices(), 'v4l_devices': sm.list_v4l_devices()})
+        elif request_type == 'ping':
+            stream_id = parsed.get("stream_id")
+            success = sm.ping_stream(stream_id) if stream_id is not None else False
+            payload = "pong" if success else "Stream has ended"
         else:
             return
 

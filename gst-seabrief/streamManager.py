@@ -1,74 +1,92 @@
-import sys
 import gi
 gi.require_version('Gst', '1.0')
 gi.require_version('GstRtspServer', '1.0')
 from gi.repository import Gst, GLib, GstRtspServer
-from pypylon import pylon
 from uuid import uuid4 as uuid
+from rtspStreamFactory import RTSPStreamFactory
+import os
+from time import time
+from threading import Timer
+from typing import Dict, Callable
 
-class StreamManager:
+
+class Stream:
+    t: Timer = None
+
+    def __init__(self, terminate_func: Callable[[], None], source: str, device: str):
+        self.__terminate_func = terminate_func
+        self.source = source
+        self.device = device
+        self.__reset_timer()
+        
+    def __reset_timer(self):
+        self.last_healthcheck = time()
+        if self.t is not None:
+            self.t.cancel()
+        t = Timer(60, self.__terminate_func)
+        t.start()
+        self.t = t
+        
+    def ping(self):
+        self.__reset_timer()
+
+
+
+class StreamManager(RTSPStreamFactory):
 
     def __init__(self):
-        self.streams = dict()
+        super().__init__()
+        self.__streams: Dict[str, Stream] = dict()
         self.server = self.__create_server()
-
+        
     def __create_server(self):
         server = GstRtspServer.RTSPServer.new()
-        server.set_service(str('5050'))
+        server.set_service(str(os.environ.port))
         server.attach()
         return server
     
     def create_stream(self, source: str, device: str) -> str:
-        id = uuid()
-        
+        # Default to /dev/video0 for v4l2
+        if source == 'v4l2' and device is None:
+            device = '/dev/video0'
+
+        # Check if device is already streaming
+        id = self.__check_device_active(source, device)
+        if id is not None:
+            return id
+        id = str(uuid())
+
         if source == 'test':
-            stream = self.__create_test_stream()
+            stream = self.create_test_stream()
 
         elif source == 'v4l2':
-            # Default to /dev/video0
-            if device is None:
-                device = '/dev/video0'
-            stream = self.__create_v4l2_stream(device)
+            stream = self.create_v4l2_stream(device)
         
         elif source == 'basler':
-            stream = self.__create_basler_stream(device)
+            stream = self.create_basler_stream(device)
         
         else:
             raise Exception(f"No source type \"{source}\" supported")
         
         self.server.get_mount_points().add_factory(f"/{id}", stream)
-        self.streams[id] = input
+
+        def terminate():
+            self.server.get_mount_points().remove_factory(f"/{id}")
+            del self.__streams[id]
+        
+        self.__streams[id] = Stream(terminate, source, device)
+        print(self.__streams.keys())
         self.server.attach()
         return id
 
+    def __check_device_active(self, source: str, device: str) -> str or None:
+        for k, v in self.__streams.items():
+            if v.source == source and v.device == device:
+                return k
+        return None
     
-    def list_devices(self):
-        return []
-    
-    def __create_test_stream(self):
-        pipeline = "videotestsrc ! x264enc ! rtph264pay pt=96 name=pay0"
-        return self.__make_factory(pipeline)
-    
-
-    def __create_v4l2_stream(self, device: str):
-        pipeline = f"v4l2src device={device} ! nvv4l2decoder mjpeg=1 enable-max-performance=true disable-dpb=true ! nvvidconv ! nvv4l2h264enc ! rtph264pay pt=96 name=pay0"
-        return self.__make_factory(pipeline)
-
-
-    def __format_basler_device_string(self, device: str):
-        if device is None:
-            return ''
-        return f"device-serial-number={device}"
-
-
-    def __create_basler_stream(self, device: str):
-        pipeline = f"pylonsrc {self.__format_basler_device_string(device)} ! video/x-raw, width=1280 , height=720, format=(string)YUY2, framerate=60/1 ! nvvidconv ! nvv4l2h264enc enable-full-frame=true ! rtph264pay pt=96 name=pay0"
-        return self.__make_factory(pipeline)
-
-
-    def __make_factory(self, pipeline: str):
-        factory = GstRtspServer.RTSPMediaFactory.new()
-        factory.set_launch(pipeline)
-        factory.set_shared(True)
-
-        return factory
+    def ping_stream(self, stream: str) -> bool:
+        if self.__streams.get(stream) is None:
+            return False
+        self.__streams[stream].ping()
+        return True
