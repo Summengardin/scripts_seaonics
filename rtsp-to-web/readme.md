@@ -5,4 +5,4 @@ Run docker container with
 
 ### Config
 See (the config file)[./config/config.json] for an example. Keep in mind its not strictly necessary to change it, as changes made 
-in the web GUI will be added to the config.
+in the web GUI will be added to the config. 
