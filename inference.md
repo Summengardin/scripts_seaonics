@@ -1,0 +1,1 @@
+To run inference models in the streams look at (gst-inference)[./gst-inference] and (deepstream)[./deepstream] and use their readmes

@@ -4,7 +4,7 @@ To create an RTSP server run the setup script then run the python script with th
 > source venv/bin/activate  
 > python3 main.py <rtsp_source>
 
-NOTE: To use the basler source, run the setup with the basler argument
+NOTE: To use the basler source, run the setup with the basler argument (unless basler's already been configured)
 > bash setup.sh basler
 
 ## Sources

@@ -94,6 +94,4 @@ CLASSES=$(expr $(wc -l < ./out/labels.txt) + 1)
 sed -i "s/<CLASS_CT>/$CLASSES/" ./out/config_infer_primary_yoloV8.txt
 
 
-rm -rf ./DeepStream-Yolo
-
 echo cd into DeepStream-Yolo and run the pipeline with deepstream-app -c deepstream_app_config.txt
