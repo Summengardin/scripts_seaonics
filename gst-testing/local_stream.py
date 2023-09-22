@@ -1,3 +1,7 @@
+'''
+This script will start a pipeline and show the camerastream in window on the current computer
+'''
+
 import gi
 gi.require_version("Gst", "1.0")
 from gi.repository import Gst, GLib
@@ -25,15 +29,15 @@ class CameraStream:
                 if not self.pipeline:
                     self.pipeline = self._generate_pipeline
                 else:
-                    print(self.pipeline.get_state())
+                    print(self.pipeline.get_state(0))
                                                             
             except KeyboardInterrupt:
                 break
             except BrokenPipeError:
                 print("Broken Pipeline")
                 pass
-            except:
-                print("Unknown error")
+            except Exception as e:
+                print("Unknown error: ", e)
                 pass
             
         
@@ -50,8 +54,8 @@ class CameraStream:
         Gst.init(None)
         pipeline = Gst.parse_launch("pylonsrc ! video/x-raw, framerate=60/1 ! autovideoconvert ! autovideosink")
         
-        pipeline.set_state(Gst.State.PLAYING)
-        
+        pipeline.set_state(Gst.State.PAUSED)
+         
         return pipeline
         
         

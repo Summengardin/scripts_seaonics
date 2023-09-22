@@ -1,7 +1,7 @@
 import gi
 gi.require_version('Gst', '1.0')
 gi.require_version('Gtk', '3.0')
-from gi.repository import Gst, GObject, Gtk
+from gi.repository import Gst, GLib, Gtk
 
 Gst.init(None)
 
@@ -38,7 +38,7 @@ class CameraViewer:
 
     def run(self):
         # Set up a main loop
-        loop = GObject.MainLoop()
+        loop = GLib.MainLoop()
         bus = self.pipeline.get_bus()
         bus.add_signal_watch()
         bus.connect("message", self.on_message)
