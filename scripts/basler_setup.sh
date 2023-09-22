@@ -1,11 +1,9 @@
 #!/bin/bash
 
-sudo apt remove -y meson ninja-build
-
 bash ./install_pylon.sh
 bash ./install_meson.sh
 
-sudo apt install -y cmake gstreamer1.0-python3-plugin-loader ninja-build
+sudo apt-get install cmake gstreamer1.0-python3-plugin-loader ninja-build -y
 
 export PYLON_ROOT=/opt/pylon
 
