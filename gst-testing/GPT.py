@@ -1,5 +1,6 @@
 import gi
 gi.require_version('Gst', '1.0')
+gi.require_version('Gtk', '3.0')
 from gi.repository import Gst, GObject, Gtk
 
 Gst.init(None)
@@ -9,7 +10,7 @@ class CameraViewer:
         self.pipeline = Gst.Pipeline()
 
         # Create elements
-        self.pylonsrc = Gst.ElementFactory.make("pyloncamera")
+        self.pylonsrc = Gst.ElementFactory.make("pylonsrc")
         self.videoconvert = Gst.ElementFactory.make("videoconvert")
         self.autovideosink = Gst.ElementFactory.make("autovideosink")
 
@@ -18,8 +19,8 @@ class CameraViewer:
             exit(-1)
 
         # Set camera properties (replace with your camera's values)
-        self.pylonsrc.set_property("camera-ip", "192.168.0.1")
-        self.pylonsrc.set_property("camera-idx", 0)
+        #self.pylonsrc.set_property("camera-ip", "192.168.0.1")
+        #self.pylonsrc.set_property("camera-idx", 0)
 
         # Add elements to the pipeline
         self.pipeline.add(self.pylonsrc)

@@ -4,24 +4,58 @@ from gi.repository import Gst, GLib
 
 from threading import Thread
 from time import sleep
-Gst.init(None)
 
-loop = GLib.MainLoop()
-thread = Thread(target=loop.run)
-thread.start()
+class CameraStream:
 
-pipeline = Gst.parse_launch("pylonsrc ! video/x-raw, framerate=60/1 ! autovideoconvert ! autovideosink")
+    def __init__(self):
 
-pipeline.set_state(Gst.state.PLAYING)
+        self.loop = GLib.MainLoop()        
+        self.pipeline = self._generate_pipeline()
+        
+                   
+    def run(self):
 
+        self.loop_thread = Thread(target=self.loop.run)
+        self.loop_thread.start()
 
-try:    
-    while True:
-        sleep(0.1)
-except KeyboardInterrupt:
-    pass
+                
+        while True:
+            sleep(0.1)
+            try:
+                if not self.pipeline:
+                    self.pipeline = self._generate_pipeline
+                else:
+                    print(self.pipeline.get_state())
+                                                            
+            except KeyboardInterrupt:
+                break
+            except BrokenPipeError:
+                print("Broken Pipeline")
+                pass
+            except:
+                print("Unknown error")
+                pass
+            
+        
+    def __del__(self):
+        if self.pipeline:
+            self.pipeline.set_state(Gst.State.NULL)
+            
+        self.loop.quit()
+        self.loop_thread.join()
+        
 
-
-pipeline.set_state(Gst.State.NULL)
-loop.quit()
-thread.join()
+    def _generate_pipeline(self):
+            
+        Gst.init(None)
+        pipeline = Gst.parse_launch("pylonsrc ! video/x-raw, framerate=60/1 ! autovideoconvert ! autovideosink")
+        
+        pipeline.set_state(Gst.State.PLAYING)
+        
+        return pipeline
+        
+        
+if __name__ == '__main__':
+    stream = CameraStream()
+    stream.run()
+    
