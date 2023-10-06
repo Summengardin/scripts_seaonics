@@ -55,7 +55,7 @@ class CameraStream:
         pipeline = Gst.parse_launch("pylonsrc ! video/x-raw, framerate=60/1 ! autovideoconvert ! autovideosink")
         
         pipeline.set_state(Gst.State.PAUSED)
-         
+
         return pipeline
         
         
