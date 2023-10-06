@@ -4,9 +4,6 @@ Stream virker, men restarter ikke når kamera blir frakoblet
 '''
 
 
-
-
-
 import gi
 gi.require_version('Gst', '1.0')
 gi.require_version('Gtk', '3.0')
@@ -17,6 +14,7 @@ import time
 
 
 class CameraViewer:
+    
     def __init__(self):
         
         self.init = True
@@ -27,8 +25,18 @@ class CameraViewer:
         
         # Initialize
         Gst.init(None)
+
+
+
+    def _define_pipeline(self):
+        # An attempt at setting up the Pipeline without 
+        pipeline = Gst.Pipeline("stream")
         
-        self.pipeline = self._create_pipeline()
+        source = Gst.ElementFactory.make_with_properties("pylonsrc", ["cam::GevSCPSPacketSize", "capture-error"], [8000, "skip"])
+        videoconvert = Gst.ElementFactory.make("autovideoconvert")
+        sink = Gst.ElementFactory.make("autovideosink")
+        
+        return pipeline
 
 
     def _create_pipeline(self):
@@ -41,10 +49,12 @@ class CameraViewer:
         
         pipeline = Gst.Pipeline("stream")
         bus = pipeline.get_bus()
-        
+         
         
         try:
             pipeline = Gst.parse_launch(pipeline_desc)
+            print(pipeline)
+            print(pipeline.children)
             print("Waiting for message")
             message = bus.timed_pop(5)
             if message is not None: print(message.type) 
@@ -67,13 +77,14 @@ class CameraViewer:
         ret = pipeline.set_state(Gst.State.PAUSED)
         if ret == Gst.StateChangeReturn.FAILURE:
             print("ERROR: Could not change state to PAUSED")
+            return None
             
         return pipeline    
+            
             
     def run(self):
         
         while not self.terminate:
-            
             
             if self.init:
                 print("Initalizing")
@@ -81,8 +92,9 @@ class CameraViewer:
                     print("Had to create pipeline")
                     self.pipeline = self._create_pipeline()
             
-                # Start the pipeline
+                # Try to start the pipeline
                 ret = self.pipeline.set_state(Gst.State.PLAYING)
+                
                 if ret == Gst.StateChangeReturn.FAILURE:
                     print("ERROR: Could not change state to PLAYING")
                     self.pipeline.set_state(Gst.State.NULL)
@@ -90,25 +102,19 @@ class CameraViewer:
                 else: 
                     self.init = False
                     self.playing = True
+                    bus = self.pipeline.get_bus()
 
-            elif self.playing:
-                # Listen to the bus
-                bus = self.pipeline.get_bus()
+            elif self.restart:
+                print ("Trying to restart pipeline")
+                self.pipeline.set_state(Gst.State.NULL)
+                self.pipeline = None
+                print("Pipeline deleted")
+                self.init = True
+                self.playing = False
+                self.restart = False
+                continue
 
-                # Loop
-                '''for testing'''
-                #restart = False
-                '''-----------'''
-                
-                if self.restart:
-                    print ("Trying to restart pipeline")
-                    self.pipeline.set_state(Gst.State.NULL)
-                    self.pipeline = None
-                    print("Pipeline deleted")
-                    self.init = True
-                    self.playing = False
-                    self.restart = False
-                    continue
+            elif self.playing:              
                 
                 message = bus.timed_pop_filtered(
                     Gst.CLOCK_TIME_NONE, 
