@@ -22,19 +22,6 @@ PRODUCER_PATH = "/opt/pylon/lib/gentlproducer/gtl/ProducerGEV.cti"
 SERIAL_NUMBER_ACE2 = "24595666"
 
 
-
-def yuv422_to_bgr(yuv422_data, width=1280, height=1024):
-    # 1. Reshape 1D array to 2D
-    yuv422_2d = np.reshape(yuv422_data, (height, width, 2))
-    print("yuv422_2d.shape:", yuv422_2d.shape)
-    # 2. Convert YUV422 to BGR using OpenCV
-    bgr_image = cv2.cvtColor(yuv422_2d, cv2.COLOR_BayerRG2RGB)
-    
-    print("bgr_image.shape:", bgr_image.shape)
-    
-    return bgr_image
-
-
 # Create a Harvester instance and set the path of the GenTL producer library.
 h = Harvester()
 h.add_file(PRODUCER_PATH)
@@ -60,6 +47,8 @@ for the ace2 (on my desk):
 
 # Create an image acquirer for device with specified serial number:
 image_acq = h.create({'serial_number': SERIAL_NUMBER_ACE2})
+
+# Set PixelFormat
 print("Previous PixelFormat:")
 print(image_acq.remote_device.node_map.PixelFormat.value)
 #image_acq.remote_device.node_map.PixelFormat.value = 'Mono8'
@@ -69,9 +58,9 @@ image_acq.remote_device.node_map.PixelFormat.value = 'BayerBG8'
 print("New PixelFormat:")
 print(image_acq.remote_device.node_map.PixelFormat.value)
 
-
+#Start camera-connection
 image_acq.start()
-time.sleep(1)
+#time.sleep(1)
 
 try:
     img_2d = None
@@ -82,28 +71,20 @@ try:
                 data_format = component.data_format
                 print(component)
                 
-                _2d_new = component.data.reshape(component.height,component.width,int(component.num_components_per_pixel))
+                frame = component.data.reshape(component.height, component.width, int(component.num_components_per_pixel))
  
                 if data_format == "Mono8":
-                    img_2d = cv2.cvtColor(_2d_new, cv2.COLOR_GRAY2BGR)
+                    img_2d = cv2.cvtColor(frame, cv2.COLOR_GRAY2BGR)
                 elif data_format == "BayerBG8" or data_format == "BayerBG10p" or data_format == "BayerBG10":
-                    img_2d = cv2.cvtColor(_2d_new, cv2.COLOR_BayerBG2RGB)
+                    img_2d = cv2.cvtColor(frame, cv2.COLOR_BayerBG2RGB)
                 elif data_format == "YUV422_8":
-                    img_2d = cv2.cvtColor(_2d_new, cv2.COLOR_YUV2BGR_YUYV)
-
-                
-                # _2d_new = cv2.cvtColor(_2d_new , cv2.COLOR_RGB2BGR)
-                #img_2d = cv2.cvtColor(_2d_new, cv2.COLOR_BayerRG2RGB)
-                #img_2d = cv2.cvtColor(_2d_new, cv2.COLOR_YUV2BGR_YUYV)
-                #img_2d = cv2.cvtColor(_2d_new, cv2.COLOR_BayerBG2RGB)
-               
+                    img_2d = cv2.cvtColor(frame, cv2.COLOR_YUV2BGR_YUYV)              
 
         if img_2d is not None:
             cv2.imshow('Converted Image', img_2d)
             if cv2.waitKey(1) == ord('q'):
                 break
-            
-            
+                 
 except KeyboardInterrupt:
     print("Ctrl-C")
 
