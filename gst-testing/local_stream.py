@@ -52,7 +52,11 @@ class CameraStream:
     def _generate_pipeline(self):
             
         Gst.init(None)
-        pipeline = Gst.parse_launch("pylonsrc ! video/x-raw, framerate=60/1 ! autovideoconvert ! autovideosink")
+        pipeline_desc = "pylonsrc cam::GevSCPSPacketSize=8000 capture-error=skip\
+ ! video/x-raw, framerate=60/1\
+ ! autovideoconvert\
+ ! autovideosink"
+        pipeline = Gst.parse_launch(pipeline_desc)
         
         pipeline.set_state(Gst.State.PAUSED)
 
