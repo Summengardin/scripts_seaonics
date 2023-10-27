@@ -10,6 +10,9 @@ Ting virker. Latency ned mot 60ms på lokal kjøring
 Neste nå: Restart ved disconnect
             Stream over rtsp/mjpeg med gstreamer
 
+27.10.23
+Fikset restart ved disconnect
+    Kom en exception fra harvesters.update()
 
 """
 
@@ -77,6 +80,7 @@ class CamGrabber():
     def __del__(self):
         if self.p.is_alive():
             self.p.terminate()
+            
         try:
             self.p.join()
         except:
@@ -145,7 +149,9 @@ class CamGrabberProcess():
                
         self.is_running.value = False    
         if self.camera:
-            self.camera.stop()             
+            self.camera.stop()  
+        
+        self.h.reset()           
 
     
     def __print_fps(self, fps_counter: int ,last_print_time: float):
@@ -156,15 +162,32 @@ class CamGrabberProcess():
             
         return fps_counter, last_print_time
     
+      
+    def __reset_harvester(self):
+        self.h.reset()
+        self.h = Harvester()
+        try:
+            gentl_file = self.__check_gentl_file()
+        except AssertionError as e:
+            print(f"[ERROR] Could not GenTL file (.cti). Expected to find: {PRODUCER_PATH}")
+            return
+        
+        self.h.add_file(gentl_file)  
+        
+        self.h.update()
+      
         
     def __find_cam(self, serial_number: str, no_cam_counter: int):
         camera = None
         has_cam = False
         
         print("\n-- Searching for camera --")
-        self.h.reset()
-        self.h.update()
-        print("Device list updated.")
+        
+        try:
+            self.h.update()
+        except Exception as e: 
+            print(f"Error when updating device list: {e}")
+                
         if not self.h.device_info_list:
             print(f"[ERROR] Could not find any devices")
             no_cam_counter += 1
@@ -176,6 +199,7 @@ class CamGrabberProcess():
                 print(f"S/N: {properties['serial_number']} | Model: {properties['model']}")
         
             print(f"\nConnecting to camera: {serial_number}")
+            
             try:
                 camera = self.h.create({"serial_number":serial_number}) # type:ignore
             except Exception as e:
@@ -292,25 +316,18 @@ class CamGrabberProcess():
 if __name__== "__main__":
 
     with CamGrabber() as cam_grabber:
+        cv2.namedWindow("Window", cv2.WINDOW_NORMAL)
         time.sleep(3)
         while cam_grabber.is_active():
             if cam_grabber.is_connected():
                 frame = cam_grabber.get_newest_frame()
                 
                 if frame is not None:
-                    # if IMAGE_FORMAT == "Mono8":
-                    #     img = cv2.cvtColor(frame, cv2.COLOR_GRAY2BGR)
-                    # elif IMAGE_FORMAT == "BayerBG8" or IMAGE_FORMAT == "BayerBG10p" or IMAGE_FORMAT == "BayerBG10":
-                    #     img = cv2.cvtColor(frame, cv2.COLOR_BayerBG2RGB)
-                    # elif IMAGE_FORMAT == "YUV422_8":
-                    #     img = cv2.cvtColor(frame, cv2.COLOR_YUV2BGR_YUYV) 
-                    
                     cv2.imshow("Window", frame)
                     
-            
-            
-            if cv2.waitKey(1) == "q":
+            if cv2.waitKey(1) == "q" or cv2.getWindowProperty("Window", cv2.WND_PROP_VISIBLE) < 1:
                 break
+
         
         cv2.destroyAllWindows()
         print("Exiting main")
