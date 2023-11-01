@@ -32,7 +32,7 @@ from genicam.gentl import TimeoutException, IoException
 
 PRODUCER_PATH = "/opt/pylon/lib/gentlproducer/gtl/ProducerGEV.cti"
 SERIAL_NUMBER_ACE2 = "24595666"
-H, W, D = 1024, 1280, 3
+H, W, D = 480, 640, 3
 IMAGE_FORMAT = "BayerBG8"
 
 CAM_GRABBER_PROCESS_SILENT = False
@@ -73,6 +73,9 @@ class CamGrabber():
         return self.cam_grabber_process.is_running.value
     
     def __exit__(self, exc_type, exc_value, traceback):
+        self.stop()
+        
+    def stop(self):
         self.p.terminate()
         self.p.join()
         print("CamGrabber has been deleted")
@@ -307,6 +310,8 @@ class CamGrabberProcess():
 
         return img
         #return frame
+        
+        
 
     def __del__(self):
         self.running = False
