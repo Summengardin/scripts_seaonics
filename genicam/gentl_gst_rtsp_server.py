@@ -78,6 +78,8 @@ def main():
 
                     # Sleep if you're pushing frames faster than real-time
                     time.sleep(duration)
+                else:
+                    print("No frame")
                     
             if cv2.waitKey(1) == "q" or cv2.getWindowProperty("Window", cv2.WND_PROP_VISIBLE) < 1:
                 break

@@ -1,0 +1,12 @@
+---
+gentl_producer_path = "/opt/pylon/lib/gentlproducer/gtl/ProducerGEV.cti"
+ace2_serial_number = "24595666"
+H = 480
+W = 640
+D = 3
+image-format = "BayerBG8"
+
+CAM_GRABBER_PROCESS_SILENT = False
+NO_CAM_COUNTER_MAX = 20
+FPS_PRINT_INTERVAL = 1 # [s]
+...
