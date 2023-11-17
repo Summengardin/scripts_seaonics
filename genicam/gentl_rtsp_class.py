@@ -129,6 +129,29 @@ class RTSPServer:
         self.feed_frame(src)
         return True
     
+    def dummy_frame(self): 
+        # Generate a dummy frame
+
+        # Background
+        frame = np.full((self.H, self.W, 3), (25, 83, 95), dtype=np.uint8)
+        
+        # setup text
+        font = cv2.FONT_HERSHEY_DUPLEX
+        text = "No frame available"
+        font_scale = 1.5
+        font_thickness = 2
+
+        # get boundary of this text
+        textsize = cv2.getTextSize(text, font, font_scale, font_thickness)[0]
+
+        # get coords based on boundary
+        textX = (frame.shape[1] - textsize[0]) / 2
+        textY = (frame.shape[0] + textsize[1]) / 2
+        
+        # add text centered on image
+        cv2.putText(frame, text, (int(textX), int(textY) ), font, font_scale, (240, 243, 245), font_thickness)
+        return frame
+    
     def feed_frame(self, src):
         # Retrieve and push frames here
         # As an example, generate a dummy numpy array
@@ -138,10 +161,9 @@ class RTSPServer:
         else:
             frame = None
         
+        
         if frame is None:
-            #return True
-            frame = np.random.randint(0, 255, (720, 1280, 3), dtype=np.uint8)
-            cv2.cvtColor(frame, cv2.COLOR_RGB2BGR, frame)
+            frame = self.dummy_frame()
         else:
             self.fps_counter, self.last_fps_print_time = self.__print_fps(self.fps_counter, self.last_fps_print_time)
         
