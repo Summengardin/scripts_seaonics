@@ -83,7 +83,7 @@ class RTSPServer:
     "! videoconvert "
     "! nvvidconv "
     "! nvv4l2h265enc "
-    "! rtph265pay config-interval=1 pt=96 name=pay0")
+    "! rtph265pay config-interval=-1 pt=96 name=pay0")
 
         
         launch_str_5 = (" appsrc name=source is-live=true format=GST_FORMAT_TIME "
