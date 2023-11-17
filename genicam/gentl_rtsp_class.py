@@ -82,8 +82,8 @@ class RTSPServer:
     f"caps=video/x-raw,width={W},height={H},framerate=30/1,format=RGB "
     "! videoconvert "
     "! nvvidconv "
-    "! nvv4l2h264enc "
-    "! rtph264pay config-interval=1 pt=96 name=pay0")
+    "! nvv4l2h265enc "
+    "! rtph265pay config-interval=1 pt=96 name=pay0")
 
         
         launch_str_5 = (" appsrc name=source is-live=true format=GST_FORMAT_TIME "
@@ -153,14 +153,12 @@ class RTSPServer:
         return frame
     
     def feed_frame(self, src):
-        # Retrieve and push frames here
-        # As an example, generate a dummy numpy array
+
         if not self.no_cam:
             frame = self.cam_grabber.get_newest_frame()
             self.fps_counter += 1
         else:
             frame = None
-        
         
         if frame is None:
             frame = self.dummy_frame()
