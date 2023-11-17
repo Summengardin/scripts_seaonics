@@ -18,32 +18,35 @@ import cv2
 
 gi.require_version('Gst', '1.0')
 gi.require_version('GstRtspServer', '1.0')
-from gi.repository import Gst, GLib, GstRtspServer
+from gi.repository import Gst, GLib, GstRtspServer, GstRtsp
 
 Gst.debug_set_active(False)
 Gst.debug_set_default_threshold(0)
 
 Gst.init(None)
 
-W = 640
-H = 480
+W = 1280
+H = 720
+FPS = 100
 FPS_PRINT_INTERVAL = 1
 
 class RTSPServer:
-    def __init__(self, port="8554", mount_point="/test", no_cam = False, test_src = False, W=W, H=H):
+    def __init__(self, port="8554", mount_point="/test", no_cam = False, test_src = False, W=W, H=H, FPS=FPS):
         self.server = GstRtspServer.RTSPServer.new()
         self.server.set_service(port)
         self.mounts = self.server.get_mount_points()
+
         self.factory = GstRtspServer.RTSPMediaFactory.new()
         self.no_cam = no_cam
         
         self.pts = 0
         
-        self.time_per_frame = Gst.SECOND / 30  # Assuming 30 fps
+        self.time_per_frame = Gst.SECOND / FPS
         self.current_pts = 0
         
         self.H = H
         self.W = W
+        self.FPS = FPS
         
         if not no_cam:
             self.cam_grabber = camgrab.CamGrabber(W=self.W, H=self.H)
@@ -79,20 +82,19 @@ class RTSPServer:
                 
         
         launch_str_4_WORKING = (f"appsrc name=source is-live=true block=true format=GST_FORMAT_TIME "
-    f"caps=video/x-raw,width={W},height={H},framerate=30/1,format=RGB "
+    f"caps=video/x-raw,width={W},height={H},framerate={FPS}/1,format=RGB "
     "! videoconvert "
     "! nvvidconv "
-    "! nvv4l2h265enc "
-    "! rtph265pay config-interval=-1 pt=96 name=pay0")
+    "! video/x-raw(memory:NVMM), format=(string)I420"
+    "! nvv4l2h264enc" #profile=0-Baseline preset-level=4-Ultrafast
+    "! rtph264pay config-interval=0 pt=96 name=pay0")
 
         
-        launch_str_5 = (" appsrc name=source is-live=true format=GST_FORMAT_TIME "
-                        "caps=video/x-raw, width=(int)1280 , height=(int)720, format=(string)BGR, framerate=(fraction)30/1 "
-                        
-                        
-                        "! nvvidconv "
-                        "! nvv4l2h264enc"
-                        "! rtph264pay config-interval=1 pt=96 name=pay0")
+        launch_str_5_NO_NVIDIA = (f"appsrc name=source is-live=true block=true format=GST_FORMAT_TIME "
+    f"caps=video/x-raw,width={W},height={H},framerate=100/1,format=RGB "
+    "! videoconvert "
+    "! x265enc "
+    "! rtph265pay config-interval=0 pt=96 name=pay0")
         
         
         
@@ -100,28 +102,43 @@ class RTSPServer:
             self.factory.set_launch(test_str)
         else:
             self.factory.set_launch(launch_str_4_WORKING)
+        #self.factory.set_latency(0)
         
-    
+        
+        
 
+        # Set the "protocols" property of the factory
+        #protocols = GstRtsp.RTSPLowerTrans.UDP | GstRtsp.RTSPLowerTrans.UDP_MCAST 
+        #self.factory.set_protocols(protocols)
+        #print(self.factory.get_protocols())
+        
         self.mounts.add_factory(mount_point, self.factory)
         self.server.attach()
 
+        
+        print("Latency: ", self.factory.get_latency())
         # Set up the main loop
         self.loop = GLib.MainLoop()
         self.context = self.loop.get_context()
 
-        # Set up the appsrc
         self.source = None
         self.factory.connect('media-configure', self.on_media_configure)
+        self.server.connect('client-connected', self.on_client_connected)
         
         self.last_fps_print_time = time.time()
         self.fps_counter = 0    
+
+
+
+    def on_client_connected(self, server, client):
+        print("Client connected: ", client.get_connection().get_ip())
+
 
     def on_media_configure(self, factory, media):
         self.source = media.get_element().get_child_by_name('source')
         if self.source:
             self.source.connect('need-data', self.on_need_data)
-            
+    
         print("Media configured")
         #GLib.timeout_add(33, self.feed_frame)
 
