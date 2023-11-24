@@ -38,6 +38,7 @@ class FrameGrabber:
         if state != Gst.State.PLAYING and self.is_running:
             print("Pipeline is not playing. Attempting to restart...")
             self.stop()
+            self.create_pipeline()
             self.start()
 
     def create_pipeline(self):
