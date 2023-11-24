@@ -10,6 +10,8 @@
 # launch_str_4
 # gst-launch-1.0 rtspsrc location=rtsp://127.0.0.1:8554/test latency=0 ! rtph264depay ! h264parse ! nvv4l2decoder enable-max-performance=1 ! nvvidconv ! autovideosink sync=0
 
+
+
 import time
 import gi
 import numpy as np
@@ -27,7 +29,7 @@ Gst.init(None)
 
 W = 1280
 H = 720
-FPS = 100
+FPS = 60
 FPS_PRINT_INTERVAL = 1
 
 class RTSPServer:
@@ -83,6 +85,7 @@ class RTSPServer:
         
         launch_str_4_WORKING = (f"appsrc name=source is-live=true block=true format=GST_FORMAT_TIME "
     f"caps=video/x-raw,width={W},height={H},framerate={FPS}/1,format=RGB "
+    "! queue leaky=2 max-size-time=500"
     "! videoconvert "
     "! nvvidconv "
     "! video/x-raw(memory:NVMM), format=(string)I420"
@@ -94,6 +97,16 @@ class RTSPServer:
     f"caps=video/x-raw,width={W},height={H},framerate=100/1,format=RGB "
     "! videoconvert "
     "! x265enc "
+    "! rtph265pay config-interval=0 pt=96 name=pay0")
+        
+        
+        
+        launch_str_5 = (f"appsrc name=source is-live=true block=true format=GST_FORMAT_TIME "
+    f"caps=video/x-raw,width={W},height={H},framerate={FPS}/1,format=RGB "
+    "! videoconvert "
+    "! nvvidconv "
+    "! video/x-raw(memory:NVMM), format=(string)I420"
+    "! nvv4l2h265enc" #profile=0-Baseline preset-level=4-Ultrafast
     "! rtph265pay config-interval=0 pt=96 name=pay0")
         
         
