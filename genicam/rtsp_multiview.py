@@ -47,7 +47,7 @@ class StreamViewer:
         if sample:
             global frame_counter
             frame_counter += 1
-            write_to_csv('/home/seaonics/Desktop/scripts_seaonics/genicam/log/events.csv', frame_counter, 'frame_recieved', time.time())
+            write_to_csv(frame_id=frame_counter, event='frame_recieved', timestamp=time.time())
             buffer = sample.get_buffer()
             caps = sample.get_caps()
             width = caps.get_structure(0).get_value("width")
@@ -84,7 +84,7 @@ def display_frames(frame_queues):
         for q in frame_queues:
             if not q.empty():
                 rtsp_url, frame, frame_count = q.get()
-                write_to_csv('/home/seaonics/Desktop/scripts_seaonics/genicam/log/events.csv', frame_count, 'frame_displayed', time.time())
+                write_to_csv(frame_id=frame_count, event='frame_displayed', timestamp=time.time())
                 cv2.imshow(rtsp_url, frame)
                 if cv2.waitKey(1) & 0xFF == ord('q'):
                     return
