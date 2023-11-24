@@ -30,7 +30,7 @@ Gst.init(None)
 
 W = 1280
 H = 720
-FPS = 030
+FPS = 60
 FPS_PRINT_INTERVAL = 1
 GUID_FRAME_ID = 0
 
@@ -129,7 +129,7 @@ class RTSPServer:
             self.factory.set_launch(test_str)
         else:
             self.factory.set_launch(launch_str_4_WORKING)
-        self.factory.set_latency(0)
+        self.factory.set_latency(50)
         
         
         
