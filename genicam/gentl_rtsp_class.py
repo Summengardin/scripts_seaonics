@@ -29,7 +29,7 @@ Gst.init(None)
 
 W = 1280
 H = 720
-FPS = 60
+FPS = 100
 FPS_PRINT_INTERVAL = 1
 
 class RTSPServer:
@@ -52,6 +52,9 @@ class RTSPServer:
         
         if not no_cam:
             self.cam_grabber = camgrab.CamGrabber(W=self.W, H=self.H)
+            
+            
+            
 
         # Set up the pipeline
         
@@ -85,7 +88,7 @@ class RTSPServer:
         
         launch_str_4_WORKING = (f"appsrc name=source is-live=true block=true format=GST_FORMAT_TIME "
     f"caps=video/x-raw,width={W},height={H},framerate={FPS}/1,format=RGB "
-    "! queue leaky=2 max-size-time=500"
+    #"! queue leaky=2"
     "! videoconvert "
     "! nvvidconv "
     "! video/x-raw(memory:NVMM), format=(string)I420"
@@ -141,7 +144,35 @@ class RTSPServer:
         self.last_fps_print_time = time.time()
         self.fps_counter = 0    
 
+    
+    def setup_local_display_pipeline(self):
+        # This method sets up a GStreamer pipeline for local display
+        self.display_pipeline = Gst.parse_launch(
+            f"appsrc name=source is-live=true format=GST_FORMAT_TIME "
+            f"caps=video/x-raw,format=RGB,width={self.W},height={self.H},framerate={self.FPS}/1 "
+            "! videoconvert "
+            "! autovideosink"
+        )
 
+        # Get the appsrc element to push buffers to
+        self.display_appsrc = self.display_pipeline.get_by_name('source')
+
+        # Set up a bus to listen to messages on the pipeline
+        bus = self.display_pipeline.get_bus()
+        bus.add_signal_watch()
+        bus.connect("message", self.on_message)
+
+    def on_message(self, bus, message):
+        t = message.type
+        if t == Gst.MessageType.EOS:
+            self.stop()
+        elif t == Gst.MessageType.ERROR:
+            err, debug = message.parse_error()
+            print("Error: %s" % err, debug)
+            self.stop()
+            
+    def stop(self):
+        self.display_pipeline.set_state(Gst.State.NULL)    
 
     def on_client_connected(self, server, client):
         print("Client connected: ", client.get_connection().get_ip())
@@ -219,6 +250,7 @@ class RTSPServer:
 
     def start(self):
         print(f"Starting RTSP server on port {self.server.get_service()}")
+        
         try:
             self.loop.run()
         except KeyboardInterrupt:

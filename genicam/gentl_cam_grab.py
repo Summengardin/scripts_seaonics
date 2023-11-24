@@ -44,6 +44,11 @@ FPS_PRINT_INTERVAL = 1 # [s]
 class CamGrabber():
     def __init__(self, H = H, W = W, D = D) -> None:
         self.cam_grabber_process = CamGrabberProcess(SERIAL_NUMBER_ACE2, H, W, D)
+        self.last_frame = np.zeros((H, W, D))
+        
+        
+        self.last_new_frame_time = time.time()
+        self.max_frame_time = 2 #s
         
         self.p = multiprocessing.Process(target=self.cam_grabber_process.run, args=())
         self.p.daemon = CAM_GRABBER_PROCESS_SILENT
@@ -58,15 +63,21 @@ class CamGrabber():
     
     def get_newest_frame(self) -> np.ndarray[typing.Any, np.dtype[np.uint8]] or None:      
         with self.cam_grabber_process.lock:
+            now = time.time()
             if self.cam_grabber_process.new_frame_available.value:
+                self.last_new_frame_time = now
                 self.cam_grabber_process.new_frame_available.value = 0
                             
                 frame = np.asarray(self.cam_grabber_process.frame_arr).reshape(self.H,self.W,self.D)
-
+                self.last_frame = frame
                 #frame = np.asarray(self.cam_grabber_process.frame_arr, dtype=np.int32).reshape(H,W,1)
                 #frame = frame.astype(np.uint8)   
                 
                 return frame
+            else:
+                if (now - self.last_new_frame_time > self.max_frame_time):
+                    return None
+                return self.last_frame
 
             
     def is_connected(self) -> bool:
@@ -103,6 +114,7 @@ class CamGrabberProcess():
         self.D = D
         
         self.frame_arr = multiprocessing.sharedctypes.RawArray(ctypes.c_uint8, self.H*self.W*self.D)
+        self.last_frame_arr = multiprocessing.sharedctypes.RawArray(ctypes.c_uint8, self.H*self.W*self.D)
         #self.frame_arr = multiprocessing.sharedctypes.RawArray('i', H*W*1)
         self.lock = multiprocessing.Lock()
         self.new_frame_available = multiprocessing.Value('i', 0)
