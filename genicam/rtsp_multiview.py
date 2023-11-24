@@ -30,6 +30,15 @@ class FrameGrabber:
         self.pipeline = None
         self.create_pipeline()
         self.is_running = False
+        
+        
+    def check_and_restart_pipeline(self):
+        # Check if the pipeline is in the expected state, restart if not
+        state = self.pipeline.get_state(Gst.CLOCK_TIME_NONE).state
+        if state != Gst.State.PLAYING and self.is_running:
+            print("Pipeline is not playing. Attempting to restart...")
+            self.stop()
+            self.start()
 
     def create_pipeline(self):
         # Create a GStreamer pipeline with 'appsink' as the sink
@@ -44,47 +53,62 @@ class FrameGrabber:
         appsink.connect("new-sample", self.new_sample, appsink)
 
     def new_sample(self, sink, data):
-        sample = sink.emit("pull-sample")
-        
-        
-        if sample:
-            global frame_counter
-            frame_counter += 1
-            write_to_csv(frame_id=frame_counter, event='frame_recieved', timestamp=time.time())
+        try:
+            sample = sink.emit("pull-sample")
             
             
-            buffer = sample.get_buffer()
-            caps = sample.get_caps()
-            width = caps.get_structure(0).get_value("width")
-            height = caps.get_structure(0).get_value("height")
+            if sample:
+                global frame_counter
+                frame_counter += 1
+                write_to_csv(frame_id=frame_counter, event='frame_recieved', timestamp=time.time())
+                
+                
+                buffer = sample.get_buffer()
+                caps = sample.get_caps()
+                width = caps.get_structure(0).get_value("width")
+                height = caps.get_structure(0).get_value("height")
 
-            # Calculate the expected size of an I420 frame
-            expected_size = width * height * 3 // 2  # I420 has 1.5 bytes per pixel
-            if buffer.get_size() != expected_size:
-                print("Buffer size does not match expected size.")
-                return Gst.FlowReturn.ERROR
+                # Calculate the expected size of an I420 frame
+                expected_size = width * height * 3 // 2  # I420 has 1.5 bytes per pixel
+                if buffer.get_size() != expected_size:
+                    print("Buffer size does not match expected size.")
+                    return Gst.FlowReturn.ERROR
 
-            start_time = time.perf_counter()
-            buffer = buffer.extract_dup(0, buffer.get_size())
-            frame = np.ndarray((height + height // 2, width), buffer=buffer, dtype=np.uint8)
+                start_time = time.perf_counter()
+                buffer = buffer.extract_dup(0, buffer.get_size())
+                frame = np.ndarray((height + height // 2, width), buffer=buffer, dtype=np.uint8)
 
-            # Convert I420 (YUV) to BGR for display with OpenCV
-            frame = cv2.cvtColor(frame, cv2.COLOR_YUV2BGR_I420)
+                # Convert I420 (YUV) to BGR for display with OpenCV
+                frame = cv2.cvtColor(frame, cv2.COLOR_YUV2BGR_I420)
 
-            print(f"Frame converted in {(time.perf_counter() - start_time)*1000}ms")
-            
-            # Put the frame in the queue for the main thread to display
-            self.frame_queue.put((self.rtsp_url, frame, frame_counter))
-            return Gst.FlowReturn.OK
-        return Gst.FlowReturn.ERROR
+                print(f"Frame converted in {(time.perf_counter() - start_time)*1000}ms")
+                
+                # Put the frame in the queue for the main thread to display
+                self.frame_queue.put((self.rtsp_url, frame, frame_counter))
+                return Gst.FlowReturn.OK
+            return Gst.FlowReturn.ERROR
+        except Exception as e:
+            print(f"Error in pipeline: {e}")
+            self.check_and_restart_pipeline()
+            return Gst.FlowReturn.ERROR
 
     def start(self):
         self.is_running = True
         self.pipeline.set_state(Gst.State.PLAYING)
+        self.check_and_restart_thread = threading.Thread(target=self.monitor_pipeline)
+        self.check_and_restart_thread.start()
 
     def stop(self):
         self.is_running = False
         self.pipeline.set_state(Gst.State.NULL)
+        if self.check_and_restart_thread:
+            self.check_and_restart_thread.join()
+            
+    def monitor_pipeline(self):
+        while self.is_running:
+            self.check_and_restart_pipeline()
+            time.sleep(1)  # Check every 1 second
+
 
 def dummy_frame(): 
         # Generate a dummy frame
