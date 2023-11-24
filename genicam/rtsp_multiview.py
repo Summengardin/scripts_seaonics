@@ -85,6 +85,7 @@ def display_frames(frame_queues):
 
     while True:
         for q in frame_queues:
+            frame = None
             if not q.empty():
                 rtsp_url, frame, frame_count = q.get()
                 last_frames[q] = (rtsp_url, frame)  # Update last frame for this queue
