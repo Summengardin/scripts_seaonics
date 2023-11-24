@@ -14,6 +14,8 @@ from gi.repository import Gst
 Gst.init(None)
 
 last_frame_time = 0
+CHECK_INTERVAL = 2  # Check every few seconds
+FRAME_RECEIVE_TIMEOUT = 5  # Restart pipeline if no frames received for 5 seconds
 
 
 def write_to_csv(filename = './log/events_receiver.csv', frame_id=0, event='unknown', timestamp=0):
@@ -75,17 +77,20 @@ class FrameGrabber:
                     print("Buffer size does not match expected size.")
                     return Gst.FlowReturn.ERROR
 
-                start_time = time.perf_counter()
+                #start_time = time.perf_counter()
                 buffer = buffer.extract_dup(0, buffer.get_size())
                 frame = np.ndarray((height + height // 2, width), buffer=buffer, dtype=np.uint8)
 
                 # Convert I420 (YUV) to BGR for display with OpenCV
                 frame = cv2.cvtColor(frame, cv2.COLOR_YUV2BGR_I420)
 
-                print(f"Frame converted in {(time.perf_counter() - start_time)*1000}ms")
+                #print(f"Frame converted in {(time.perf_counter() - start_time)*1000}ms")
+                
                 
                 # Put the frame in the queue for the main thread to display
                 self.frame_queue.put((self.rtsp_url, frame, frame_counter))
+                self.new_frame_received = True
+                
                 return Gst.FlowReturn.OK
             return Gst.FlowReturn.ERROR
         except Exception as e:
@@ -106,9 +111,27 @@ class FrameGrabber:
             self.check_and_restart_thread.join()
             
     def monitor_pipeline(self):
+        last_frame_time = None
         while self.is_running:
-            self.check_and_restart_pipeline()
-            time.sleep(1)  # Check every 1 second
+            current_time = time.time()
+
+            # Check if the pipeline is in the expected state
+            state = self.pipeline.get_state(Gst.CLOCK_TIME_NONE).state
+            if state != Gst.State.PLAYING:
+                print("Pipeline is not playing. Attempting to restart...")
+                self.restart_pipeline()
+
+            # Check if frames are being received
+            if last_frame_time is not None and (current_time - last_frame_time) > FRAME_RECEIVE_TIMEOUT:
+                print("No frames received for a while. Attempting to restart...")
+                self.restart_pipeline()
+
+            # Update last_frame_time if a new frame has been received
+            if self.new_frame_received:
+                last_frame_time = current_time
+                self.new_frame_received = False
+
+            time.sleep(CHECK_INTERVAL)  # Check every few seconds
 
 
 def dummy_frame(): 
