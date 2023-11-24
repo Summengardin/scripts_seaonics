@@ -1,71 +1,85 @@
 import gi
+import cv2
 import sys
 import threading
+import queue
+import numpy as np
 
 gi.require_version('Gst', '1.0')
-from gi.repository import Gst, GLib
+from gi.repository import Gst
 
 Gst.init(None)
 
 class StreamViewer:
-    def __init__(self, rtsp_url):
+    def __init__(self, rtsp_url, frame_queue):
         self.rtsp_url = rtsp_url
+        self.frame_queue = frame_queue
         self.pipeline = None
         self.create_pipeline()
+        self.is_running = False
 
     def create_pipeline(self):
-        # Create a GStreamer pipeline for the RTSP stream
+        # Create a GStreamer pipeline with 'appsink' as the sink
         self.pipeline = Gst.parse_launch(
-            f"rtspsrc location={self.rtsp_url} latency=0 ! rtph264depay ! h264parse ! decodebin ! videoconvert ! autovideosink sync=0"
+            "rtspsrc location={} latency=0 ! rtph264depay ! h264parse ! "
+            "nvv4l2decoder enable-max-performance=1 ! nvvidconv ! videoconvert ! "
+            "appsink emit-signals=True name=sink".format(self.rtsp_url)
         )
+        appsink = self.pipeline.get_by_name("sink")
+        appsink.set_property("max-buffers", 1)
+        appsink.set_property("drop", True)
+        appsink.set_property("sync", False)
+        appsink.connect("new-sample", self.new_sample, appsink)
 
-        # Set up a bus to listen to messages on the pipeline
-        bus = self.pipeline.get_bus()
-        bus.add_signal_watch()
-        bus.connect("message::eos", self.on_eos)
-        bus.connect("message::error", self.on_error)
+    def new_sample(self, sink, data):
+        sample = sink.emit("pull-sample")
+        if sample:
+            buffer = sample.get_buffer()
+            caps = sample.get_caps()
+            width = caps.get_structure(0).get_value("width")
+            height = caps.get_structure(0).get_value("height")
+            buffer = buffer.extract_dup(0, buffer.get_size())
+            frame = np.ndarray((height, width, 3), buffer=buffer, dtype=np.uint8)
 
-    def on_eos(self, bus, msg):
-        print("End-Of-Stream reached.")
-        self.pipeline.set_state(Gst.State.NULL)
-
-    def on_error(self, bus, msg):
-        error = msg.parse_error()
-        print("Error occurred:", error)
-        self.pipeline.set_state(Gst.State.NULL)
+            # Put the frame in the queue for the main thread to display
+            self.frame_queue.put((self.rtsp_url, frame))
+            return Gst.FlowReturn.OK
+        return Gst.FlowReturn.ERROR
 
     def start(self):
-        print(f"Started stream from {self.rtsp_url}")
+        self.is_running = True
         self.pipeline.set_state(Gst.State.PLAYING)
 
     def stop(self):
+        self.is_running = False
         self.pipeline.set_state(Gst.State.NULL)
 
 
+def display_frames(frame_queues):
+    while True:
+        for q in frame_queues:
+            if not q.empty():
+                rtsp_url, frame = q.get()
+                cv2.imshow(rtsp_url, frame)
+                if cv2.waitKey(1) & 0xFF == ord('q'):
+                    return
+
+
 def main(rtsp_urls):
-    viewers = [StreamViewer(url) for url in rtsp_urls]
+    frame_queues = [queue.Queue() for _ in rtsp_urls]
+    viewers = [StreamViewer(url, frame_queue) for url, frame_queue in zip(rtsp_urls, frame_queues)]
 
     # Start each stream in its own thread
-    threads = []
     for viewer in viewers:
-        thread = threading.Thread(target=viewer.start)
-        threads.append(thread)
-        thread.start()
+        threading.Thread(target=viewer.start).start()
 
-    # Keep the program running
+    # Display frames in the main thread
     try:
-        loop = GLib.MainLoop()
-        loop.run()
-    except KeyboardInterrupt:
-        pass
-
-    # Stop all streams
-    for viewer in viewers:
-        viewer.stop()
-
-    # Wait for all threads to finish
-    for thread in threads:
-        thread.join()
+        display_frames(frame_queues)
+    finally:
+        for viewer in viewers:
+            viewer.stop()
+        cv2.destroyAllWindows()
 
 
 if __name__ == "__main__":
