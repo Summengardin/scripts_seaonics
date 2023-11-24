@@ -21,7 +21,7 @@ class StreamViewer:
     def create_pipeline(self):
         # Create a GStreamer pipeline with 'appsink' as the sink
         self.pipeline = Gst.parse_launch(
-            "rtspsrc location={} latency=0 ! rtph264depay ! h264parse ! videoconvert " 
+            "rtspsrc location={} latency=0 ! rtph264depay ! h264parse ! decodebin ! videoconvert " 
             "! appsink emit-signals=True name=sink".format(self.rtsp_url)
         )
         appsink = self.pipeline.get_by_name("sink")
