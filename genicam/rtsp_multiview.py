@@ -51,6 +51,8 @@ class FrameGrabber:
             global frame_counter
             frame_counter += 1
             write_to_csv(frame_id=frame_counter, event='frame_recieved', timestamp=time.time())
+            
+            
             buffer = sample.get_buffer()
             caps = sample.get_caps()
             width = caps.get_structure(0).get_value("width")
@@ -62,12 +64,15 @@ class FrameGrabber:
                 print("Buffer size does not match expected size.")
                 return Gst.FlowReturn.ERROR
 
+            start_time = time.perf_counter()
             buffer = buffer.extract_dup(0, buffer.get_size())
             frame = np.ndarray((height + height // 2, width), buffer=buffer, dtype=np.uint8)
 
             # Convert I420 (YUV) to BGR for display with OpenCV
             frame = cv2.cvtColor(frame, cv2.COLOR_YUV2BGR_I420)
 
+            print(f"Frame converted in {(time.perf_counter() - start_time)*1000}ms")
+            
             # Put the frame in the queue for the main thread to display
             self.frame_queue.put((self.rtsp_url, frame, frame_counter))
             return Gst.FlowReturn.OK
@@ -85,7 +90,7 @@ def dummy_frame():
         # Generate a dummy frame
 
         # Background
-        frame = np.full((720, 1280, 3), (25, 83, 95), dtype=np.uint8)
+        frame = np.full((720, 1280, 3), (95, 83, 25), dtype=np.uint8)
         
         # setup text
         font = cv2.FONT_HERSHEY_DUPLEX
