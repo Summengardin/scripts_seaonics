@@ -13,7 +13,7 @@ from gi.repository import Gst
 
 Gst.init(None)
 
-last_frame_repeat_time = 0
+last_frame_time = 0
 
 
 def write_to_csv(filename = './log/events_receiver.csv', frame_id=0, event='unknown', timestamp=0):
@@ -106,7 +106,7 @@ def dummy_frame():
     
 
 def display_frames(frame_queues):
-    global last_frame_repeat_time
+    global last_frame_time
     last_frames = {q: None for q in frame_queues}  # Store the last frame of each queue
 
     while True:
@@ -116,19 +116,16 @@ def display_frames(frame_queues):
             if not q.empty():
                 rtsp_url, frame, frame_count = q.get()
                 last_frames[q] = (rtsp_url, frame, frame_count)  # Update last frame for this queue
-            else:
-                
-                if now - last_frame_repeat_time > 2:
-                    frame = dummy_frame()
-                    
-                elif last_frames[q] is not None:
-                    last_frame_repeat_time = now
-                    rtsp_url, frame = last_frames[q]  # Use the last frame if queue is empty
+                last_frame_time = now
+            elif now - last_frame_time <= 2 and last_frames[q] is not None:
+                rtsp_url, frame, frame_count = last_frames[q]  # Use the last frame if queue is empty
             
             if frame is not None:
                 write_to_csv(frame_id=frame_count, event='frame_displayed', timestamp=time.time())
-                cv2.imshow(rtsp_url, frame)
-
+            else:
+                frame = dummy_frame()
+            
+            cv2.imshow(rtsp_url, frame)
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 return
 
