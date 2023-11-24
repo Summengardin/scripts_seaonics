@@ -17,6 +17,7 @@ import gi
 import numpy as np
 import gentl_cam_grab as camgrab
 import cv2
+import csv
 
 gi.require_version('Gst', '1.0')
 gi.require_version('GstRtspServer', '1.0')
@@ -31,6 +32,16 @@ W = 1280
 H = 720
 FPS = 100
 FPS_PRINT_INTERVAL = 1
+GUID_FRAME_ID = 0
+
+
+def write_to_csv(filename = '/home/seaonics/Desktop/scripts_seaonics/genicam/log/events_sender.csv', frame_id=0, event='unknown', timestamp=0):
+    #print(f"Writing to csv: {filename} \t {frame_id}, {event}, {timestamp}")
+    with open(filename, 'a', newline='') as file:
+        writer = csv.writer(file)
+        writer.writerow([frame_id, event, timestamp])
+
+
 
 class RTSPServer:
     def __init__(self, port="8554", mount_point="/test", no_cam = False, test_src = False, W=W, H=H, FPS=FPS):
@@ -118,7 +129,7 @@ class RTSPServer:
             self.factory.set_launch(test_str)
         else:
             self.factory.set_launch(launch_str_4_WORKING)
-        #self.factory.set_latency(0)
+        self.factory.set_latency(0)
         
         
         
@@ -143,6 +154,7 @@ class RTSPServer:
         
         self.last_fps_print_time = time.time()
         self.fps_counter = 0    
+        self.frame_counter = 0
 
     
     def setup_local_display_pipeline(self):
@@ -182,7 +194,8 @@ class RTSPServer:
         self.source = media.get_element().get_child_by_name('source')
         if self.source:
             self.source.connect('need-data', self.on_need_data)
-    
+        
+        self.frame_counter = 0
         print("Media configured")
         #GLib.timeout_add(33, self.feed_frame)
 
@@ -216,7 +229,12 @@ class RTSPServer:
     def feed_frame(self, src):
 
         if not self.no_cam:
-            frame = self.cam_grabber.get_newest_frame()
+            # Extract timestamp from the frame
+            frame, timestamp = self.cam_grabber.get_newest_frame()
+            #frame = self.cam_grabber.get_newest_frame()
+            self.frame_counter += 1
+            write_to_csv(frame_id=self.frame_counter, event="frame_grabbed", timestamp=timestamp)
+            
             self.fps_counter += 1
         else:
             frame = None
@@ -246,6 +264,7 @@ class RTSPServer:
         retval = src.emit('push-buffer', gst_buffer)
         if retval != Gst.FlowReturn.OK:
             print("Error pushing buffer")
+        write_to_csv(frame_id=self.frame_counter, event="frame_pushed", timestamp=time.time())
         return True  # Return True to keep the timeout active
 
     def start(self):

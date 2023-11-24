@@ -4,11 +4,21 @@ import sys
 import threading
 import queue
 import numpy as np
+import csv
+import time
 
 gi.require_version('Gst', '1.0')
 from gi.repository import Gst
 
 Gst.init(None)
+
+
+def write_to_csv(filename = './log/events_receiver.csv', frame_id=0, event='unknown', timestamp=0):
+    #print(f"Writing to csv: {filename} \t {frame_id}, {event}, {timestamp}")
+    with open(filename, 'a', newline='') as file:
+        writer = csv.writer(file)
+        writer.writerow([frame_id, event, timestamp])
+frame_counter = 0
 
 class StreamViewer:
     def __init__(self, rtsp_url, frame_queue):
@@ -32,7 +42,12 @@ class StreamViewer:
 
     def new_sample(self, sink, data):
         sample = sink.emit("pull-sample")
+        
+        
         if sample:
+            global frame_counter
+            frame_counter += 1
+            write_to_csv('/home/seaonics/Desktop/scripts_seaonics/genicam/log/events.csv', frame_counter, 'frame_recieved', time.time())
             buffer = sample.get_buffer()
             caps = sample.get_caps()
             width = caps.get_structure(0).get_value("width")
@@ -51,7 +66,7 @@ class StreamViewer:
             frame = cv2.cvtColor(frame, cv2.COLOR_YUV2BGR_I420)
 
             # Put the frame in the queue for the main thread to display
-            self.frame_queue.put((self.rtsp_url, frame))
+            self.frame_queue.put((self.rtsp_url, frame, frame_counter))
             return Gst.FlowReturn.OK
         return Gst.FlowReturn.ERROR
 
@@ -68,7 +83,8 @@ def display_frames(frame_queues):
     while True:
         for q in frame_queues:
             if not q.empty():
-                rtsp_url, frame = q.get()
+                rtsp_url, frame, frame_count = q.get()
+                write_to_csv('/home/seaonics/Desktop/scripts_seaonics/genicam/log/events.csv', frame_count, 'frame_displayed', time.time())
                 cv2.imshow(rtsp_url, frame)
                 if cv2.waitKey(1) & 0xFF == ord('q'):
                     return

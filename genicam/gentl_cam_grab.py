@@ -44,7 +44,7 @@ FPS_PRINT_INTERVAL = 1 # [s]
 class CamGrabber():
     def __init__(self, H = H, W = W, D = D) -> None:
         self.cam_grabber_process = CamGrabberProcess(SERIAL_NUMBER_ACE2, H, W, D)
-        self.last_frame = np.zeros((H, W, D))
+        self.last_frame = None
         
         
         self.last_new_frame_time = time.time()
@@ -61,7 +61,7 @@ class CamGrabber():
     def __enter__(self):
         return self
     
-    def get_newest_frame(self) -> np.ndarray[typing.Any, np.dtype[np.uint8]] or None:      
+    def get_newest_frame(self) -> (np.ndarray[typing.Any, np.dtype[np.uint8]], float) or None:      
         with self.cam_grabber_process.lock:
             now = time.time()
             if self.cam_grabber_process.new_frame_available.value:
@@ -69,6 +69,10 @@ class CamGrabber():
                 self.cam_grabber_process.new_frame_available.value = 0
                             
                 frame = np.asarray(self.cam_grabber_process.frame_arr).reshape(self.H,self.W,self.D)
+                
+                # Add timestamp for latencey calculation
+                frame = (frame, self.cam_grabber_process.last_frame_time.value)
+                
                 self.last_frame = frame
                 #frame = np.asarray(self.cam_grabber_process.frame_arr, dtype=np.int32).reshape(H,W,1)
                 #frame = frame.astype(np.uint8)   
@@ -108,13 +112,13 @@ class CamGrabber():
 class CamGrabberProcess():
     def __init__(self, serial_number: str, H=H, W=W, D=D) -> None:
         self.serial_number = serial_number
+        self.last_frame_time = multiprocessing.Value('d', 0.0)
         
         self.H = H
         self.W = W
         self.D = D
         
         self.frame_arr = multiprocessing.sharedctypes.RawArray(ctypes.c_uint8, self.H*self.W*self.D)
-        self.last_frame_arr = multiprocessing.sharedctypes.RawArray(ctypes.c_uint8, self.H*self.W*self.D)
         #self.frame_arr = multiprocessing.sharedctypes.RawArray('i', H*W*1)
         self.lock = multiprocessing.Lock()
         self.new_frame_available = multiprocessing.Value('i', 0)
@@ -285,11 +289,14 @@ class CamGrabberProcess():
         
         try:
             with camera.fetch(timeout=1) as buffer:
-            
+                
+                
                 component = buffer.payload.components[0]            
                 frame = self.__retrieve_img_from_component(component)
                 
+                
                 with lock:
+                    self.last_frame_time.value = time.time()
                     fps_counter += 1
                     new_frame_available.value = 1
                     
