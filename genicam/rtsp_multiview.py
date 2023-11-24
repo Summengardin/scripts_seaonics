@@ -81,11 +81,11 @@ class FrameGrabber:
         self.is_running = False
         self.pipeline.set_state(Gst.State.NULL)
 
-def dummy_frame(self): 
+def dummy_frame(): 
         # Generate a dummy frame
 
         # Background
-        frame = np.full((self.H, self.W, 3), (25, 83, 95), dtype=np.uint8)
+        frame = np.full((720, 1280, 3), (25, 83, 95), dtype=np.uint8)
         
         # setup text
         font = cv2.FONT_HERSHEY_DUPLEX
