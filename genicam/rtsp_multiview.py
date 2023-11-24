@@ -6,6 +6,7 @@ import queue
 import numpy as np
 import csv
 import time
+import typing
 
 gi.require_version('Gst', '1.0')
 from gi.repository import Gst
@@ -20,7 +21,7 @@ def write_to_csv(filename = './log/events_receiver.csv', frame_id=0, event='unkn
         writer.writerow([frame_id, event, timestamp])
 frame_counter = 0
 
-class StreamViewer:
+class FrameGrabber:
     def __init__(self, rtsp_url, frame_queue):
         self.rtsp_url = rtsp_url
         self.frame_queue = frame_queue
@@ -79,30 +80,39 @@ class StreamViewer:
         self.pipeline.set_state(Gst.State.NULL)
 
 
-def display_frames(frame_queues):
+def display_frames(frame_queues: typing.List[typing.Queue]):
+    last_frames = {q: None for q in frame_queues}  # Store the last frame of each queue
+
     while True:
         for q in frame_queues:
             if not q.empty():
                 rtsp_url, frame, frame_count = q.get()
+                last_frames[q] = (rtsp_url, frame)  # Update last frame for this queue
+            else:
+                if last_frames[q] is not None:
+                    rtsp_url, frame = last_frames[q]  # Use the last frame if queue is empty
+            
+            if frame is not None:
                 write_to_csv(frame_id=frame_count, event='frame_displayed', timestamp=time.time())
                 cv2.imshow(rtsp_url, frame)
-                if cv2.waitKey(1) & 0xFF == ord('q'):
-                    return
+
+            if cv2.waitKey(1) & 0xFF == ord('q'):
+                return
 
 
 def main(rtsp_urls):
     frame_queues = [queue.Queue() for _ in rtsp_urls]
-    viewers = [StreamViewer(url, frame_queue) for url, frame_queue in zip(rtsp_urls, frame_queues)]
+    frame_grabbers = [FrameGrabber(url, frame_queue) for url, frame_queue in zip(rtsp_urls, frame_queues)]
 
     # Start each stream in its own thread
-    for viewer in viewers:
+    for viewer in frame_grabbers:
         threading.Thread(target=viewer.start).start()
 
     # Display frames in the main thread
     try:
         display_frames(frame_queues)
     finally:
-        for viewer in viewers:
+        for viewer in frame_grabbers:
             viewer.stop()
         cv2.destroyAllWindows()
 
