@@ -37,9 +37,18 @@ class StreamViewer:
             caps = sample.get_caps()
             width = caps.get_structure(0).get_value("width")
             height = caps.get_structure(0).get_value("height")
+
+            # Calculate the expected size of an I420 frame
+            expected_size = width * height * 3 // 2  # I420 has 1.5 bytes per pixel
+            if buffer.get_size() != expected_size:
+                print("Buffer size does not match expected size.")
+                return Gst.FlowReturn.ERROR
+
             buffer = buffer.extract_dup(0, buffer.get_size())
-            print(f"Width: {width}, Height: {height}")
-            frame = np.ndarray((height, width, 3), buffer=buffer, dtype=np.uint8)
+            frame = np.ndarray((height + height // 2, width), buffer=buffer, dtype=np.uint8)
+
+            # Convert I420 (YUV) to BGR for display with OpenCV
+            frame = cv2.cvtColor(frame, cv2.COLOR_YUV2BGR_I420)
 
             # Put the frame in the queue for the main thread to display
             self.frame_queue.put((self.rtsp_url, frame))
