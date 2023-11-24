@@ -107,7 +107,7 @@ class FrameGrabber:
     def stop(self):
         self.is_running = False
         self.pipeline.set_state(Gst.State.NULL)
-        if self.check_and_restart_thread:
+        if self.check_and_restart_thread.joinable():
             self.check_and_restart_thread.join()
             
     def monitor_pipeline(self):
