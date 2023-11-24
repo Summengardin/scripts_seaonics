@@ -21,9 +21,8 @@ class StreamViewer:
     def create_pipeline(self):
         # Create a GStreamer pipeline with 'appsink' as the sink
         self.pipeline = Gst.parse_launch(
-            "rtspsrc location={} latency=0 ! rtph264depay ! h264parse ! "
-            "nvv4l2decoder enable-max-performance=1 ! nvvidconv ! videoconvert ! "
-            "appsink emit-signals=True name=sink".format(self.rtsp_url)
+            "rtspsrc location={} latency=0 ! rtph264depay ! h264parse ! videoconvert " 
+            "! appsink emit-signals=True name=sink".format(self.rtsp_url)
         )
         appsink = self.pipeline.get_by_name("sink")
         appsink.set_property("max-buffers", 1)
