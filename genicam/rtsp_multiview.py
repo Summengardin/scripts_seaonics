@@ -106,6 +106,7 @@ def dummy_frame(self):
     
 
 def display_frames(frame_queues):
+    global last_frame_repeat_time
     last_frames = {q: None for q in frame_queues}  # Store the last frame of each queue
 
     while True:
