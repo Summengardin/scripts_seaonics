@@ -131,9 +131,16 @@ def display_frames(frame_queues):
 
 
 def main(rtsp_urls):
-    frame_queues = [queue.Queue() for _ in rtsp_urls]
+    frame_queues = []
+    for url in rtsp_urls:
+        q = queue.Queue()
+        q.put((url, dummy_frame(), 0))
+        frame_queues.append(q)
+
     frame_grabbers = [FrameGrabber(url, frame_queue) for url, frame_queue in zip(rtsp_urls, frame_queues)]
 
+    
+    
     # Start each stream in its own thread
     for viewer in frame_grabbers:
         threading.Thread(target=viewer.start).start()
