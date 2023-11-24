@@ -38,6 +38,7 @@ class StreamViewer:
             width = caps.get_structure(0).get_value("width")
             height = caps.get_structure(0).get_value("height")
             buffer = buffer.extract_dup(0, buffer.get_size())
+            print(f"Width: {width}, Height: {height}")
             frame = np.ndarray((height, width, 3), buffer=buffer, dtype=np.uint8)
 
             # Put the frame in the queue for the main thread to display
