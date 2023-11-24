@@ -6,7 +6,7 @@ import queue
 import numpy as np
 import csv
 import time
-import typing
+
 
 gi.require_version('Gst', '1.0')
 from gi.repository import Gst
@@ -80,7 +80,7 @@ class FrameGrabber:
         self.pipeline.set_state(Gst.State.NULL)
 
 
-def display_frames(frame_queues: typing.List[typing.Queue]):
+def display_frames(frame_queues):
     last_frames = {q: None for q in frame_queues}  # Store the last frame of each queue
 
     while True:
