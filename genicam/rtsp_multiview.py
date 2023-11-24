@@ -39,9 +39,12 @@ class FrameGrabber:
         state = self.pipeline.get_state(Gst.CLOCK_TIME_NONE).state
         if state != Gst.State.PLAYING and self.is_running:
             print("Pipeline is not playing. Attempting to restart...")
-            self.stop()
-            self.create_pipeline()
-            self.start()
+            self.restart_pipeline()
+            
+    def restart_pipeline(self):
+        self.stop()
+        self.create_pipeline()
+        self.start()
 
     def create_pipeline(self):
         # Create a GStreamer pipeline with 'appsink' as the sink
