@@ -30,7 +30,7 @@ Gst.init(None)
 
 W = 1280
 H = 720
-FPS = 100
+FPS = 030
 FPS_PRINT_INTERVAL = 1
 GUID_FRAME_ID = 0
 
@@ -228,9 +228,14 @@ class RTSPServer:
     
     def feed_frame(self, src):
 
+        
         if not self.no_cam:
             # Extract timestamp from the frame
-            frame, timestamp = self.cam_grabber.get_newest_frame()
+            try:
+                frame, timestamp = self.cam_grabber.get_newest_frame()
+            except Exception as e:
+                print(f"Error getting frame: {e}")
+                frame = None
             #frame = self.cam_grabber.get_newest_frame()
             self.frame_counter += 1
             write_to_csv(frame_id=self.frame_counter, event="frame_grabbed", timestamp=timestamp)

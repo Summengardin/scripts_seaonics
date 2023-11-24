@@ -13,6 +13,8 @@ from gi.repository import Gst
 
 Gst.init(None)
 
+last_frame_repeat_time = 0
+
 
 def write_to_csv(filename = './log/events_receiver.csv', frame_id=0, event='unknown', timestamp=0):
     #print(f"Writing to csv: {filename} \t {frame_id}, {event}, {timestamp}")
@@ -79,6 +81,29 @@ class FrameGrabber:
         self.is_running = False
         self.pipeline.set_state(Gst.State.NULL)
 
+def dummy_frame(self): 
+        # Generate a dummy frame
+
+        # Background
+        frame = np.full((self.H, self.W, 3), (25, 83, 95), dtype=np.uint8)
+        
+        # setup text
+        font = cv2.FONT_HERSHEY_DUPLEX
+        text = "No frame available"
+        font_scale = 1.5
+        font_thickness = 2
+
+        # get boundary of this text
+        textsize = cv2.getTextSize(text, font, font_scale, font_thickness)[0]
+
+        # get coords based on boundary
+        textX = (frame.shape[1] - textsize[0]) / 2
+        textY = (frame.shape[0] + textsize[1]) / 2
+        
+        # add text centered on image
+        cv2.putText(frame, text, (int(textX), int(textY) ), font, font_scale, (240, 243, 245), font_thickness)
+        return frame
+    
 
 def display_frames(frame_queues):
     last_frames = {q: None for q in frame_queues}  # Store the last frame of each queue
@@ -86,11 +111,17 @@ def display_frames(frame_queues):
     while True:
         for q in frame_queues:
             frame = None
+            now = time.time()
             if not q.empty():
                 rtsp_url, frame, frame_count = q.get()
-                last_frames[q] = (rtsp_url, frame)  # Update last frame for this queue
+                last_frames[q] = (rtsp_url, frame, frame_count)  # Update last frame for this queue
             else:
-                if last_frames[q] is not None:
+                
+                if now - last_frame_repeat_time > 2:
+                    frame = dummy_frame()
+                    
+                elif last_frames[q] is not None:
+                    last_frame_repeat_time = now
                     rtsp_url, frame = last_frames[q]  # Use the last frame if queue is empty
             
             if frame is not None:
