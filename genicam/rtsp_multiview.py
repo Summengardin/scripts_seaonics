@@ -119,19 +119,20 @@ def display_rtsp_frames_same_window(cam_grabbers, enable_logging=False):
             primary_frame = frames_to_display[primary_index]
             secondary_frame = frames_to_display[1 - primary_index]
 
+            
             small_frame = cv2.resize(secondary_frame, (primary_frame.shape[1] // 4, primary_frame.shape[0] // 4))
 
             x_offset = primary_frame.shape[1] - small_frame.shape[1]
             y_offset = primary_frame.shape[0] - small_frame.shape[0]
 
             combined_frame = primary_frame.copy()
-            combined_frame[y_offset:y_offset+small_frame.shape[0], x_offset:x_offset+small_frame.shape[1]] = small_frame
-
-            # Draw border around secondary frame
             frame_thickness = 10
             border_color = (0, 255, 0) 
             cv2.rectangle(combined_frame, (x_offset, y_offset), (x_offset + small_frame.shape[1], y_offset + small_frame.shape[0]), border_color, frame_thickness)
-            
+            #combined_frame[y_offset:y_offset+small_frame.shape[0], x_offset:x_offset+small_frame.shape[1]] = small_frame
+            combined_frame[-small_frame.shape[0]:, -small_frame.shape[1]:] = small_frame 
+
+           
             cv2.imshow("Combined Frames", combined_frame)
             
 
