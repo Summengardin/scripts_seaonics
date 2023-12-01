@@ -12,7 +12,11 @@ import gi
 gi.require_version('Gst', '1.0')
 from gi.repository import Gst
 
+
+Gst.debug_set_active(True)
+Gst.debug_set_default_threshold(5)
 Gst.init(None)
+
 
 
 CAM_GRABBER_PROCESS_SILENT = False
@@ -165,56 +169,35 @@ class RTSPCamGrabberProcess():
         self.pipeline.set_state(Gst.State.NULL)
         self.pipeline = self.create_pipeline()
         self.pipeline.set_state(Gst.State.PLAYING)
-        if self.pipeline.get_state(0)[1] != Gst.State.PLAYING:
-            print('Pipeline failed to restart')
-
  
         
     def monitor_pipeline(self):
         restart = False
         while self.is_running.value:
-            start_time = time.perf_counter()
             if restart:
                 self.restart_pipeline()
             restart = False
-            end_time = time.perf_counter()
-            print(f'Restarted pipeline in {(end_time - start_time) * 1000:.3f} milliseconds')
 
-            start_time = time.perf_counter()
             time.sleep(3)
-            end_time = time.perf_counter()
-            print(f'Slept for {(end_time - start_time) * 1000:.3f} milliseconds')
 
-            start_time = time.perf_counter()
             if not self.is_running.value:
                 break
             now = time.time()
-            end_time = time.perf_counter()
-            print(f'Checked if running in {(end_time - start_time) * 1000:.3f} milliseconds')
 
-            start_time = time.perf_counter()
             # Check if pipeline is still running
             if self.pipeline.get_state(0)[1] != Gst.State.PLAYING:
                 print(self.pipeline.get_state(0))
                 print('Pipeline is not running')
                 restart = True
-            end_time = time.perf_counter()
-            print(f'Checked pipeline state in {(end_time - start_time) * 1000:.3f} milliseconds')
-
-            if restart:
                 continue
-
-            start_time = time.perf_counter()
+            
             # Check if frames are still being received
             with self.lock:
                 last_frame_age = now - self.last_frame_time.value
                 if last_frame_age > FRAME_RECEIVE_TIMEOUT:
                     print(f'No frames received for {last_frame_age * 1000:.3f} milliseconds')
                     restart = True
-            end_time = time.perf_counter()
-            print(f'Checked last frame time in {(end_time - start_time) * 1000:.3f} milliseconds')
-
-            
+             
                 
         print('Exiting monitor thread')
     
