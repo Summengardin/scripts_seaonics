@@ -145,7 +145,7 @@ def display_rtsp_frames_same_window(cam_grabbers, enable_logging=False):
 
 
 def main(rtsp_urls, enable_logging=False):
-    rtsp_grabbers = [RTSPCamGrabber(rtsp_url=url) for url in rtsp_urls]
+    rtsp_grabbers = [RTSPCamGrabber(rtsp_url=url, W=1280, H=1024) for url in rtsp_urls]
     
     try:
         display_rtsp_frames_same_window(rtsp_grabbers, enable_logging=enable_logging)
