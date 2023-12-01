@@ -155,7 +155,7 @@ class RTSPCamGrabberProcess():
         print('Stopped RTSP grabber process')
      
     def restart_pipeline(self):
-        print('\nRestarting pipeline')
+        print('Restarting pipeline\n')
         self.pipeline.set_state(Gst.State.NULL)
         self.pipeline = self.create_pipeline()
         self.pipeline.set_state(Gst.State.PLAYING)
