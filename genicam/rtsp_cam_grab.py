@@ -43,7 +43,6 @@ class RTSPCamGrabber():
                 frame = np.ndarray((self.cam_grabber_process.H, self.cam_grabber_process.W, 3), buffer=self.cam_grabber_process.frame_arr, dtype=np.uint8)
                 
                 self.last_frame = frame
-                
                 return frame
             
             else:
