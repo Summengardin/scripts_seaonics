@@ -181,7 +181,7 @@ class RTSPCamGrabberProcess():
                 continue
                 
             # Check if frames are still being received
-            restart = False
+            continue
             with self.lock:
                 last_frame_age = now - self.last_frame_time.value
                 if last_frame_age > FRAME_RECEIVE_TIMEOUT:
