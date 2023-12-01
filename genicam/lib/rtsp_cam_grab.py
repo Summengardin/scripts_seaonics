@@ -192,6 +192,7 @@ class RTSPCamGrabberProcess():
             start_time = time.perf_counter()
             # Check if pipeline is still running
             if self.pipeline.get_state(0)[1] != Gst.State.PLAYING:
+                print(self.pipeline.get_state(0))
                 print('Pipeline is not running')
                 restart = True
             end_time = time.perf_counter()
