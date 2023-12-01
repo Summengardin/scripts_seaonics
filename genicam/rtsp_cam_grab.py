@@ -110,6 +110,7 @@ class RTSPCamGrabberProcess():
         self.frame_arr = multiprocessing.sharedctypes.RawArray(ctypes.c_uint8, self.W * self.H * 3)
         self.lock = multiprocessing.Lock()
         self.new_frame_available = multiprocessing.Value('b', False)
+        self.last_frame_time = multiprocessing.Value('d', 0)
         self.is_running = multiprocessing.Value('b', False)
         
         self.pipeline = None
@@ -162,7 +163,6 @@ class RTSPCamGrabberProcess():
  
         
     def monitor_pipeline(self):
-        last_frame_time = time.time()
         restart = False
         while self.is_running.value:
             if restart:
@@ -183,10 +183,9 @@ class RTSPCamGrabberProcess():
             # Check if frames are still being received
             restart = False
             with self.lock:
-                if self.new_frame_available.value:
-                    last_frame_time = now
-                elif now - last_frame_time > FRAME_RECEIVE_TIMEOUT:
-                    print('No frames received for {} seconds'.format(now - last_frame_time))
+                last_frame_age = now - self.last_frame_time.value
+                if last_frame_age > FRAME_RECEIVE_TIMEOUT:
+                    print(f'No frames received for {last_frame_age} seconds')
                     restart = True
                     continue
                       
