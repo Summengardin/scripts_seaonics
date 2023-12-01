@@ -48,7 +48,7 @@ for viewer in frame_grabbers:
 '''
 
 
-
+from rtsp_cam_grab import RTSPCamGrabber
 
 
 gi.require_version('Gst', '1.0')
@@ -197,7 +197,7 @@ def dummy_frame():
         
         # setup text
         font = cv2.FONT_HERSHEY_DUPLEX
-        text = "No frame available"
+        text = "No framesesdfg available"
         font_scale = 1.5
         font_thickness = 2
 
@@ -243,11 +243,13 @@ def display_frames_same_window(frame_queues, enable_logging=False):
     last_frames = {q: None for q in frame_queues}  # Store the last frame of each queue 
     
     cv2.namedWindow("Combined Frames", cv2.WINDOW_NORMAL)
+    primary_index = 0  # Index to determine which frame is primary
+
 
     while True:
         frames_to_display = []
 
-        for q in frame_queues:
+        for i, q in enumerate(frame_queues):
             frame = None
             now = time.time()
             if not q.empty():
@@ -261,48 +263,90 @@ def display_frames_same_window(frame_queues, enable_logging=False):
                 if enable_logging: write_to_csv(frame_id=frame_count, event='frame_displayed', timestamp=time.time())
                 frames_to_display.append(frame)
             else:
-                frames_to_display.append(dummy_frame())
+                frame = dummy_frame()
+                cv2.putText(frame, str(i), (50, 200), cv2.FONT_HERSHEY_DUPLEX, 5, (240, 243, 245), 2)
+                frames_to_display.append(frame)
 
         # Merge the frames horizontally or vertically
         if frames_to_display:
-            combined_frame = np.hstack(frames_to_display) if frames_to_display[0].shape[0] == frames_to_display[1].shape[0] else np.vstack(frames_to_display)
-            cv2.imshow("Combined Frames", combined_frame)
+            # Decide which frame is primary and which is secondary
+            primary_frame = frames_to_display[primary_index]
+            secondary_frame = frames_to_display[1 - primary_index]
 
-         # Check if the window was closed
-        if cv2.waitKey(1) & 0xFF == ord('q') or cv2.getWindowProperty('Combined Frames', cv2.WND_PROP_VISIBLE) < 1:        
+            # Resize secondary frame to be smaller, e.g., 1/4th of the primary frame
+            small_frame = cv2.resize(secondary_frame, (primary_frame.shape[1] // 4, primary_frame.shape[0] // 4))
+
+            # Place the small frame on the top-right corner of the primary frame
+            primary_frame[-small_frame.shape[0]:, -small_frame.shape[1]:] = small_frame
+
+            # Show the combined frame
+            cv2.imshow("Combined Frames", primary_frame)
+
+        # Check for spacebar press or window close
+        key = cv2.waitKey(1) & 0xFF
+        if key == ord(' '):  # Spacebar pressed
+            primary_index = 1 - primary_index  # Swap the primary frame
+        elif key == ord('q') or cv2.getWindowProperty('Combined Frames', cv2.WND_PROP_VISIBLE) < 1:
             break
     
+def display_rtsp_frames_same_window(cam_grabbers, enable_logging=False):
+    #global last_frame_time
+    
+    cv2.namedWindow("Combined Frames", cv2.WINDOW_NORMAL)
+    primary_index = 0  # Index to determine which frame is primary
+
+
+    while True:
+        frames_to_display = []
+
+        for i, grabber in enumerate(cam_grabbers):
+            frame = None
+            now = time.time()
+            frame = grabber.get_frame()
+            if frame is not None:
+                if enable_logging: write_to_csv(frame_id=frame_count, event='frame_displayed', timestamp=time.time())
+                frames_to_display.append(frame)
+            else:
+                frame = dummy_frame()
+                cv2.putText(frame, str(i), (50, 200), cv2.FONT_HERSHEY_DUPLEX, 5, (240, 243, 245), 2)
+                frames_to_display.append(frame)
+
+        # Merge the frames horizontally or vertically
+        if frames_to_display:
+            # Decide which frame is primary and which is secondary
+            primary_frame = frames_to_display[primary_index]
+            secondary_frame = frames_to_display[1 - primary_index]
+
+            # Resize secondary frame to be smaller, e.g., 1/4th of the primary frame
+            small_frame = cv2.resize(secondary_frame, (primary_frame.shape[1] // 4, primary_frame.shape[0] // 4))
+
+            # Place the small frame on the top-right corner of the primary frame
+            primary_frame[-small_frame.shape[0]:, -small_frame.shape[1]:] = small_frame
+
+            # Show the combined frame
+            cv2.imshow("Combined Frames", primary_frame)
+
+        # Check for spacebar press or window close
+        key = cv2.waitKey(1) & 0xFF
+        if key == ord(' '):  # Spacebar pressed
+            primary_index = 1 - primary_index  # Swap the primary frame
+        elif key == ord('q') or cv2.getWindowProperty('Combined Frames', cv2.WND_PROP_VISIBLE) < 1:
+            break
 
 
 def main(rtsp_urls, enable_logging=False):
-    frame_queues = []
-    for url in rtsp_urls:
-        q = queue.Queue()
-        q.put((url, dummy_frame(), 0))
-        frame_queues.append(q)
-
-    frame_grabbers = [FrameGrabber(url, frame_queue, enable_logging) for url, frame_queue in zip(rtsp_urls, frame_queues)]
-
+    rtsp_grabbers = [RTSPCamGrabber(rtsp_url=url) for url in rtsp_urls]
     
-    frame_grabber_threads = []
-    
-    for frame_grabber in frame_grabbers:
-        thread  = threading.Thread(target=frame_grabber.start)
-        thread.start()
-        frame_grabber_threads.append(thread)
-
     # Display frames in the main thread
     try:
-        display_frames_same_window(frame_queues, enable_logging)
+        display_rtsp_frames_same_window(rtsp_grabbers, enable_logging=enable_logging)
     except Exception as e:
         print(f"Error displaying frames: {e}")
         
-    for frame_grabber in frame_grabbers:
-        frame_grabber.stop()
-        
-    for thread in frame_grabber_threads:
-        thread.join()
-        
+    for grabber in rtsp_grabbers:
+        grabber.stop()
+    
+
     cv2.destroyAllWindows()
 
 

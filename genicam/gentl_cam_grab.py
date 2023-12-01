@@ -80,7 +80,7 @@ class CamGrabber():
                 return frame
             else:
                 if (now - self.last_new_frame_time > self.max_frame_time):
-                    return None
+                    return None, 0
                 return self.last_frame
 
             

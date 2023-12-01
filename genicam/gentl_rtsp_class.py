@@ -45,25 +45,24 @@ def write_to_csv(filename = '/home/seaonics/Desktop/scripts_seaonics/genicam/log
 
 
 class RTSPServer:
-    def __init__(self, port="8554", mount_point="/test", no_cam = False, test_src = False, W=W, H=H, FPS=FPS):
-        self.server = GstRtspServer.RTSPServer.new()
-        self.server.set_service(port)
-        self.mounts = self.server.get_mount_points()
-
-        self.factory = GstRtspServer.RTSPMediaFactory.new()
+    def __init__(self, port="8554", mount_point="/test", no_cam = False, test_src = False, W=W, H=H, FPS=FPS, enable_logging=False):
+        self.port = port
+        self.mount_point = mount_point
         self.no_cam = no_cam
-        
-        self.pts = 0
-        
-        self.time_per_frame = Gst.SECOND / FPS
-        self.current_pts = 0
-        
+        self.test_src = test_src
         self.H = H
         self.W = W
         self.FPS = FPS
+        self.enable_logging = enable_logging
+        
+        self.pts = 0
+        self.time_per_frame = Gst.SECOND / FPS
+        self.current_pts = 0
+        
+        
         
         if not no_cam:
-            self.cam_grabber = camgrab.CamGrabber(W=self.W, H=self.H)
+            self.setup_cam_grabber()
             
             
             
@@ -126,39 +125,63 @@ class RTSPServer:
         
         
         if test_src:
-            self.factory.set_launch(test_str)
+            self.launch_str = test_str
         else:
-            self.factory.set_launch(launch_str_4_WORKING)
-        self.factory.set_latency(0)
+            self.launch_str = launch_str_4_WORKING
         
         
         
+        self.setup_factory()
 
         # Set the "protocols" property of the factory
         #protocols = GstRtsp.RTSPLowerTrans.UDP | GstRtsp.RTSPLowerTrans.UDP_MCAST 
         #self.factory.set_protocols(protocols)
         #print(self.factory.get_protocols())
-        
-        self.mounts.add_factory(mount_point, self.factory)
-        self.server.attach()
 
         
-        print("Latency: ", self.factory.get_latency())
         # Set up the main loop
         self.loop = GLib.MainLoop()
         self.context = self.loop.get_context()
 
         self.source = None
-        self.factory.connect('media-configure', self.on_media_configure)
-        self.server.connect('client-connected', self.on_client_connected)
         
         self.last_fps_print_time = time.time()
         self.fps_counter = 0    
         self.frame_counter = 0
+        
+        self.client = None
+        
+    
+    def setup_factory(self):
+        print("Setting up factory")
+        self.server = GstRtspServer.RTSPServer.new()
+        self.server.set_service(self.port)
+        self.mounts = self.server.get_mount_points()
+        
+        self.factory = GstRtspServer.RTSPMediaFactory.new()
+        self.factory.set_launch(self.launch_str)
+        self.factory.set_latency(0)
+        
+        self.mounts.add_factory(self.mount_point, self.factory)
+        self.server_source_id = self.server.attach()
+        
+        self.factory.connect('media-configure', self.on_media_configure)
+        self.server.connect('client-connected', self.on_client_connected)
+
+        
+        
+    def setup_cam_grabber(self):
+        self.cam_grabber = camgrab.CamGrabber(W=self.W, H=self.H)
 
     
     def on_client_connected(self, server, client):
         print("Client connected: ", client.get_connection().get_ip())
+        self.client = client
+        self.client.connect('closed', self.on_client_disconnected)
+        
+    def on_client_disconnected(self, user_data):
+        print("Client disconnected: ", self.client.get_connection().get_ip())
+        self.restart_server()
 
 
     def on_media_configure(self, factory, media):
@@ -166,9 +189,19 @@ class RTSPServer:
         if self.source:
             self.source.connect('need-data', self.on_need_data)
         
+        # Connect to the 'media-configure' signal to handle TEARDOWN
+        media.connect("new-state", self.on_new_state, factory)
+        
         self.frame_counter = 0
         print("Media configured")
         #GLib.timeout_add(33, self.feed_frame)
+        
+    def on_new_state(self, media, old_state, new_state):
+        if new_state == Gst.State.NULL:
+            self.handle_teardown(media, self.factory)
+            
+    def handle_teardown(self, media, factory):
+        print("Handling TEARDOWN for media:", media)
 
     def on_need_data(self, src, length):
         self.feed_frame(src)
@@ -204,9 +237,7 @@ class RTSPServer:
         if not self.no_cam:
             # Extract timestamp from the frame
             try:
-                frame_info = self.cam_grabber.get_newest_frame()
-                if frame_info is not None:
-                    frame, timestamp = frame_info
+                frame, timestamp = self.cam_grabber.get_newest_frame()
             except Exception as e:
                 print(f"Error getting frame: {e}")
                 frame, timestamp = None, 0
@@ -253,12 +284,30 @@ class RTSPServer:
             self.loop.run()
         except KeyboardInterrupt:
             pass  # Allow clean exit on Ctrl+C
+    
+    def restart_server(self):
+        # Stop the server
+        
+        
+        # remove from maincontext
+        if self.server_source_id:
+            GLib.source_remove(self.server_source_id)
+            self.server_source_id = None
+            print("Server removed from main context")
+        
+        # Reinitialize the server
+        self.setup_factory()
+        #self.__init__(self.port, self.mount_point, self.no_cam, self.test_src, self.W, self.H, self.FPS, self.enable_logging)
 
+        # Start the server again
+        self.start()
+    
     def stop(self):
         if not self.no_cam:
             self.cam_grabber.stop()
         self.loop.quit()
         print("RTSP server stopped")
+
         
         
     def __print_fps(self, fps_counter: int ,last_print_time: float):
@@ -273,7 +322,7 @@ class RTSPServer:
         
 if __name__ == "__main__":
     # Usage:
-    server = RTSPServer(no_cam=False, test_src=False)
+    server = RTSPServer(no_cam=False, test_src=False, enable_logging=False)
     try:
         server.start()
     except Exception as e:
