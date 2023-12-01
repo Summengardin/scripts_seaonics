@@ -212,6 +212,7 @@ class RTSPCamGrabberProcess():
             frame = cv2.cvtColor(frame, cv2.COLOR_YUV2BGR_I420)
             
             with self.lock:
+                self.last_frame_time.value = time.time()
                 ctypes.memmove(self.frame_arr, frame.ctypes.data, self.frame_arr._length_)
                 self.new_frame_available.value = True
                 
