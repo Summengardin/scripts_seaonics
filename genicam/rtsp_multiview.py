@@ -8,6 +8,49 @@ import csv
 import time
 
 
+'''
+
+class FrameGrabber:
+    # ... [rest of your existing code] ...
+
+    def __init__(self, rtsp_url, frame_queue):
+        # ... [rest of your existing __init__ code] ...
+        self.monitoring_thread_active = False
+
+    def start(self):
+        # ... [your existing start method code] ...
+        self.monitoring_thread_active = True
+        self.check_and_restart_thread = threading.Thread(target=self.monitor_pipeline)
+        self.check_and_restart_thread.start()
+
+    def stop(self):
+        # ... [your existing stop method code, minus the join call] ...
+        self.monitoring_thread_active = False
+        # Note: Do not join the thread here if this method can be called from the monitoring thread
+
+    def monitor_pipeline(self):
+        while self.monitoring_thread_active:
+            # ... [rest of your monitor_pipeline code] ...
+            time.sleep(1)  # Check every 1 second
+
+# In your main function or where you stop the FrameGrabber instances:
+for viewer in frame_grabbers:
+    viewer.stop()
+
+# After stopping all viewers, join their threads:
+for viewer in frame_grabbers:
+    if viewer.check_and_restart_thread:
+        viewer.check_and_restart_thread.join()
+
+# ... [rest of your code] ...
+
+
+'''
+
+
+
+
+
 gi.require_version('Gst', '1.0')
 from gi.repository import Gst
 
@@ -26,19 +69,30 @@ def write_to_csv(filename = './log/events_receiver.csv', frame_id=0, event='unkn
 frame_counter = 0
 
 class FrameGrabber:
-    def __init__(self, rtsp_url, frame_queue):
+    def __init__(self, rtsp_url, frame_queue, enable_logging=False):
+        self.enable_logging = enable_logging
         self.rtsp_url = rtsp_url
         self.frame_queue = frame_queue
+        self.new_frame_received = False
+        self.is_running = False
         self.pipeline = None
         self.create_pipeline()
-        self.is_running = False
+        self.restart_counter = 0
+        
+        
+        
+    
+    def __del__(self):
+        if self.check_and_restart_thread:
+            self.check_and_restart_thread.join()
         
         
     def check_and_restart_pipeline(self):
         # Check if the pipeline is in the expected state, restart if not
         state = self.pipeline.get_state(Gst.CLOCK_TIME_NONE).state
         if state != Gst.State.PLAYING and self.is_running:
-            print("Pipeline is not playing. Attempting to restart...")
+            self.restart_counter += 1
+            print(f"Pipeline is not playing. Attempt to restart #{self.restart_counter}...")
             self.restart_pipeline()
             
     def restart_pipeline(self):
@@ -66,7 +120,7 @@ class FrameGrabber:
             if sample:
                 global frame_counter
                 frame_counter += 1
-                write_to_csv(frame_id=frame_counter, event='frame_recieved', timestamp=time.time())
+                if self.enable_logging: write_to_csv(frame_id=frame_counter, event='frame_recieved', timestamp=time.time())
                 
                 
                 buffer = sample.get_buffer()
@@ -110,8 +164,7 @@ class FrameGrabber:
     def stop(self):
         self.is_running = False
         self.pipeline.set_state(Gst.State.NULL)
-        if self.check_and_restart_thread.is_alive():
-            self.check_and_restart_thread.join()
+        
             
     def monitor_pipeline(self):
         last_frame_time = None
@@ -121,7 +174,6 @@ class FrameGrabber:
             # Check if the pipeline is in the expected state
             state = self.pipeline.get_state(Gst.CLOCK_TIME_NONE).state
             if state != Gst.State.PLAYING:
-                print("Pipeline is not playing. Attempting to restart...")
                 self.restart_pipeline()
 
             # Check if frames are being received
@@ -161,7 +213,7 @@ def dummy_frame():
         return frame
     
 
-def display_frames(frame_queues):
+def display_frames(frame_queues, enable_logging=False):
     global last_frame_time
     last_frames = {q: None for q in frame_queues}  # Store the last frame of each queue
 
@@ -177,7 +229,7 @@ def display_frames(frame_queues):
                 rtsp_url, frame, frame_count = last_frames[q]  # Use the last frame if queue is empty
             
             if frame is not None:
-                write_to_csv(frame_id=frame_count, event='frame_displayed', timestamp=time.time())
+                if enable_logging: write_to_csv(frame_id=frame_count, event='frame_displayed', timestamp=time.time())
             else:
                 frame = dummy_frame()
             
@@ -186,34 +238,84 @@ def display_frames(frame_queues):
                 return
 
 
-def main(rtsp_urls):
+def display_frames_same_window(frame_queues, enable_logging=False):
+    global last_frame_time
+    last_frames = {q: None for q in frame_queues}  # Store the last frame of each queue 
+    
+    cv2.namedWindow("Combined Frames", cv2.WINDOW_NORMAL)
+
+    while True:
+        frames_to_display = []
+
+        for q in frame_queues:
+            frame = None
+            now = time.time()
+            if not q.empty():
+                rtsp_url, frame, frame_count = q.get()
+                last_frames[q] = (rtsp_url, frame, frame_count)  # Update last frame for this queue
+                last_frame_time = now
+            elif now - last_frame_time <= 2 and last_frames[q] is not None:
+                rtsp_url, frame, frame_count = last_frames[q]  # Use the last frame if queue is empty
+
+            if frame is not None:
+                if enable_logging: write_to_csv(frame_id=frame_count, event='frame_displayed', timestamp=time.time())
+                frames_to_display.append(frame)
+            else:
+                frames_to_display.append(dummy_frame())
+
+        # Merge the frames horizontally or vertically
+        if frames_to_display:
+            combined_frame = np.hstack(frames_to_display) if frames_to_display[0].shape[0] == frames_to_display[1].shape[0] else np.vstack(frames_to_display)
+            cv2.imshow("Combined Frames", combined_frame)
+
+         # Check if the window was closed
+        if cv2.waitKey(1) & 0xFF == ord('q') or cv2.getWindowProperty('Combined Frames', cv2.WND_PROP_VISIBLE) < 1:        
+            break
+    
+
+
+def main(rtsp_urls, enable_logging=False):
     frame_queues = []
     for url in rtsp_urls:
         q = queue.Queue()
         q.put((url, dummy_frame(), 0))
         frame_queues.append(q)
 
-    frame_grabbers = [FrameGrabber(url, frame_queue) for url, frame_queue in zip(rtsp_urls, frame_queues)]
+    frame_grabbers = [FrameGrabber(url, frame_queue, enable_logging) for url, frame_queue in zip(rtsp_urls, frame_queues)]
 
     
+    frame_grabber_threads = []
     
-    # Start each stream in its own thread
-    for viewer in frame_grabbers:
-        threading.Thread(target=viewer.start).start()
+    for frame_grabber in frame_grabbers:
+        thread  = threading.Thread(target=frame_grabber.start)
+        thread.start()
+        frame_grabber_threads.append(thread)
 
     # Display frames in the main thread
     try:
-        display_frames(frame_queues)
-    finally:
-        for viewer in frame_grabbers:
-            viewer.stop()
-        cv2.destroyAllWindows()
+        display_frames_same_window(frame_queues, enable_logging)
+    except Exception as e:
+        print(f"Error displaying frames: {e}")
+        
+    for frame_grabber in frame_grabbers:
+        frame_grabber.stop()
+        
+    for thread in frame_grabber_threads:
+        thread.join()
+        
+    cv2.destroyAllWindows()
+
+
+
 
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
         print("Usage: python3 stream_viewer.py <RTSP URL 1> <RTSP URL 2> ...")
-        sys.exit(1)
-
-    rtsp_urls = sys.argv[1:]
+        rtsp_urls = ["rtsp://127.0.0.1:8554/test", "rtsp://169.254.54.69:8554/test"]
+    else:
+        rtsp_urls = sys.argv[1:]
+        
+        
+    enable_logging = False    
     main(rtsp_urls)

@@ -23,6 +23,7 @@ gi.require_version('Gst', '1.0')
 gi.require_version('GstRtspServer', '1.0')
 from gi.repository import Gst, GLib, GstRtspServer, GstRtsp
 
+
 Gst.debug_set_active(False)
 Gst.debug_set_default_threshold(0)
 
@@ -30,7 +31,7 @@ Gst.init(None)
 
 W = 1280
 H = 720
-FPS = 60
+FPS = 100
 FPS_PRINT_INTERVAL = 1
 GUID_FRAME_ID = 0
 
@@ -99,7 +100,6 @@ class RTSPServer:
         
         launch_str_4_WORKING = (f"appsrc name=source is-live=true block=true format=GST_FORMAT_TIME "
     f"caps=video/x-raw,width={W},height={H},framerate={FPS}/1,format=RGB "
-    #"! queue leaky=2"
     "! videoconvert "
     "! nvvidconv "
     "! video/x-raw(memory:NVMM), format=(string)I420"
@@ -129,7 +129,7 @@ class RTSPServer:
             self.factory.set_launch(test_str)
         else:
             self.factory.set_launch(launch_str_4_WORKING)
-        self.factory.set_latency(50)
+        self.factory.set_latency(0)
         
         
         
@@ -157,35 +157,6 @@ class RTSPServer:
         self.frame_counter = 0
 
     
-    def setup_local_display_pipeline(self):
-        # This method sets up a GStreamer pipeline for local display
-        self.display_pipeline = Gst.parse_launch(
-            f"appsrc name=source is-live=true format=GST_FORMAT_TIME "
-            f"caps=video/x-raw,format=RGB,width={self.W},height={self.H},framerate={self.FPS}/1 "
-            "! videoconvert "
-            "! autovideosink"
-        )
-
-        # Get the appsrc element to push buffers to
-        self.display_appsrc = self.display_pipeline.get_by_name('source')
-
-        # Set up a bus to listen to messages on the pipeline
-        bus = self.display_pipeline.get_bus()
-        bus.add_signal_watch()
-        bus.connect("message", self.on_message)
-
-    def on_message(self, bus, message):
-        t = message.type
-        if t == Gst.MessageType.EOS:
-            self.stop()
-        elif t == Gst.MessageType.ERROR:
-            err, debug = message.parse_error()
-            print("Error: %s" % err, debug)
-            self.stop()
-            
-    def stop(self):
-        self.display_pipeline.set_state(Gst.State.NULL)    
-
     def on_client_connected(self, server, client):
         print("Client connected: ", client.get_connection().get_ip())
 
@@ -224,6 +195,7 @@ class RTSPServer:
         
         # add text centered on image
         cv2.putText(frame, text, (int(textX), int(textY) ), font, font_scale, (240, 243, 245), font_thickness)
+        cv2.putText(frame, "From CamGrabber", (int(textX), int(textY-50) ), font, font_scale*0.5, (240, 243, 245), font_thickness)
         return frame
     
     def feed_frame(self, src):
@@ -235,7 +207,7 @@ class RTSPServer:
                 frame, timestamp = self.cam_grabber.get_newest_frame()
             except Exception as e:
                 print(f"Error getting frame: {e}")
-                frame = None
+                frame, timestamp = None, 0
             #frame = self.cam_grabber.get_newest_frame()
             self.frame_counter += 1
             write_to_csv(frame_id=self.frame_counter, event="frame_grabbed", timestamp=timestamp)

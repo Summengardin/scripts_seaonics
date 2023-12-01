@@ -227,16 +227,23 @@ class CamGrabberProcess():
             print(f"\nConnecting to camera: {serial_number}")
             
             try:
+                print("Creating camera object")
                 camera = self.h.create({"serial_number":serial_number}) # type:ignore
+                print("Camera object created")
             except Exception as e:
                 print(f"Exception when creating camera: {e}")
                 return camera, has_cam, no_cam_counter
+            
+            print("Camera bbject created")
             
             try:
                 self.__configure_camera(camera)
             except Exception as e:
                 print("Exception when configuring camera: ",e)
                 return camera, has_cam, no_cam_counter
+
+            print("Camera configured")
+
 
             try:
                 camera.start()
