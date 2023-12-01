@@ -155,7 +155,7 @@ class RTSPCamGrabberProcess():
         print('Stopped RTSP grabber process')
      
     def restart_pipeline(self):
-        print('Restarting pipeline')
+        print('\nRestarting pipeline')
         self.pipeline.set_state(Gst.State.NULL)
         self.pipeline = self.create_pipeline()
         self.pipeline.set_state(Gst.State.PLAYING)
@@ -163,7 +163,12 @@ class RTSPCamGrabberProcess():
         
     def monitor_pipeline(self):
         last_frame_time = time.time()
+        restart = False
         while self.is_running.value:
+            if restart:
+                self.restart_pipeline()
+            restart = False
+            
             time.sleep(3)
             if not self.is_running.value:
                 break
@@ -171,7 +176,8 @@ class RTSPCamGrabberProcess():
             
             # Check if pipeline is still running
             if self.pipeline.get_state(0)[1] != Gst.State.PLAYING:
-                self.restart_pipeline()
+                print('Pipeline is not running')
+                restart = True
                 continue
                 
             # Check if frames are still being received
@@ -180,10 +186,11 @@ class RTSPCamGrabberProcess():
                 if self.new_frame_available.value:
                     last_frame_time = now
                 elif now - last_frame_time > FRAME_RECEIVE_TIMEOUT:
+                    print('No frames received for {} seconds'.format(now - last_frame_time))
                     restart = True
+                    continue
                       
-            if restart:
-                self.restart_pipeline()
+            
                 
         print('Exiting monitor thread')
     
