@@ -204,7 +204,9 @@ class RTSPServer:
         if not self.no_cam:
             # Extract timestamp from the frame
             try:
-                frame, timestamp = self.cam_grabber.get_newest_frame()
+                frame_info = self.cam_grabber.get_newest_frame()
+                if frame_info is not None:
+                    frame, timestamp = frame_info
             except Exception as e:
                 print(f"Error getting frame: {e}")
                 frame, timestamp = None, 0

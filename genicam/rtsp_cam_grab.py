@@ -165,31 +165,47 @@ class RTSPCamGrabberProcess():
     def monitor_pipeline(self):
         restart = False
         while self.is_running.value:
+            start_time = time.perf_counter()
             if restart:
                 self.restart_pipeline()
             restart = False
+            end_time = time.perf_counter()
+            print(f'Restarted pipeline in {end_time - start_time} seconds')
             
+            start_time = time.perf_counter()
             time.sleep(3)
+            end_time = time.perf_counter()
+            print(f'Slept for {end_time - start_time} seconds')
+            
+            start_time = time.perf_counter()
             if not self.is_running.value:
                 break
             now = time.time()
+            end_time = time.perf_counter()
+            print(f'Checked if running in {end_time - start_time} seconds')
             
+            
+            start_time = time.perf_counter()
             # Check if pipeline is still running
             if self.pipeline.get_state(0)[1] != Gst.State.PLAYING:
                 print('Pipeline is not running')
                 restart = True
-                continue
+            end_time = time.perf_counter()
+            print(f'Checked pipeline state in {end_time - start_time} seconds')
+            
+            if restart:
+                continue   
+            
                 
+            start_time = time.perf_counter()
             # Check if frames are still being received
             with self.lock:
-                print(f'Now: {now}')
-                print(f'Last frame time: {self.last_frame_time.value}')
-                
                 last_frame_age = now - self.last_frame_time.value
                 if last_frame_age > FRAME_RECEIVE_TIMEOUT:
                     print(f'No frames received for {last_frame_age} seconds')
                     restart = True
-                    continue
+            end_time = time.perf_counter()
+            print(f'Checked last frame time in {end_time - start_time} seconds')
                       
             
                 
