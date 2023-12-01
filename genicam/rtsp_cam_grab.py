@@ -166,6 +166,8 @@ class RTSPCamGrabberProcess():
         last_frame_time = time.time()
         while self.is_running.value:
             time.sleep(3)
+            if not self.is_running.value:
+                break
             now = time.time()
             
             # Check if pipeline is still running
