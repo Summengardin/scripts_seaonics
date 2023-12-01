@@ -207,28 +207,21 @@ class RTSPServer:
         self.feed_frame(src)
         return True
     
-    def dummy_frame(self): 
-        # Generate a dummy frame
-
-        # Background
+    def create_dummy_frame(self):
         frame = np.full((self.H, self.W, 3), (25, 83, 95), dtype=np.uint8)
-        
-        # setup text
-        font = cv2.FONT_HERSHEY_DUPLEX
+
+        font = cv2.FONT_HERSHEY_SIMPLEX
         text = "No frame available"
         font_scale = 1.5
         font_thickness = 2
-
-        # get boundary of this text
         textsize = cv2.getTextSize(text, font, font_scale, font_thickness)[0]
-
-        # get coords based on boundary
+        
         textX = (frame.shape[1] - textsize[0]) / 2
         textY = (frame.shape[0] + textsize[1]) / 2
         
-        # add text centered on image
+        cv2.putText(frame, f"GENTLCamGrabber says:", (int(textX), int(textY-50) ), font, font_scale*0.5, (240, 243, 245), font_thickness//2)
         cv2.putText(frame, text, (int(textX), int(textY) ), font, font_scale, (240, 243, 245), font_thickness)
-        cv2.putText(frame, "From CamGrabber", (int(textX), int(textY-50) ), font, font_scale*0.5, (240, 243, 245), font_thickness)
+        
         return frame
     
     def feed_frame(self, src):
@@ -250,7 +243,7 @@ class RTSPServer:
             frame = None
         
         if frame is None:
-            frame = self.dummy_frame()
+            frame = self.create_dummy_frame()
         else:
             self.fps_counter, self.last_fps_print_time = self.__print_fps(self.fps_counter, self.last_fps_print_time)
         

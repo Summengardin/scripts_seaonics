@@ -249,7 +249,7 @@ if __name__ == '__main__':
     
     args = parser.parse_args()
     
-    with RTSPCamGrabber(rtsp_url=args.rtsp_url) as cam_grabber:
+    with RTSPCamGrabber(rtsp_url=args.rtsp_url, H=1024, W=1280) as cam_grabber:
         cv2.namedWindow("Window", cv2.WINDOW_NORMAL)
         while True:
             frame = cam_grabber.get_frame()
