@@ -68,136 +68,15 @@ def write_to_csv(filename = './log/events_receiver.csv', frame_id=0, event='unkn
         writer.writerow([frame_id, event, timestamp])
 frame_counter = 0
 
-class FrameGrabber:
-    def __init__(self, rtsp_url, frame_queue, enable_logging=False):
-        self.enable_logging = enable_logging
-        self.rtsp_url = rtsp_url
-        self.frame_queue = frame_queue
-        self.new_frame_received = False
-        self.is_running = False
-        self.pipeline = None
-        self.create_pipeline()
-        self.restart_counter = 0
-        
-        
-        
-    
-    def __del__(self):
-        if self.check_and_restart_thread:
-            self.check_and_restart_thread.join()
-        
-        
-    def check_and_restart_pipeline(self):
-        # Check if the pipeline is in the expected state, restart if not
-        state = self.pipeline.get_state(Gst.CLOCK_TIME_NONE).state
-        if state != Gst.State.PLAYING and self.is_running:
-            self.restart_counter += 1
-            print(f"Pipeline is not playing. Attempt to restart #{self.restart_counter}...")
-            self.restart_pipeline()
-            
-    def restart_pipeline(self):
-        self.stop()
-        self.create_pipeline()
-        self.start()
-
-    def create_pipeline(self):
-        # Create a GStreamer pipeline with 'appsink' as the sink
-        self.pipeline = Gst.parse_launch(
-            "rtspsrc location={} latency=0 ! rtph264depay ! h264parse ! decodebin ! videoconvert " 
-            "! appsink emit-signals=True name=sink".format(self.rtsp_url)
-        )
-        appsink = self.pipeline.get_by_name("sink")
-        appsink.set_property("max-buffers", 1)
-        appsink.set_property("drop", True)
-        appsink.set_property("sync", False)
-        appsink.connect("new-sample", self.new_sample, appsink)
-
-    def new_sample(self, sink, data):
-        try:
-            sample = sink.emit("pull-sample")
-            
-            
-            if sample:
-                global frame_counter
-                frame_counter += 1
-                if self.enable_logging: write_to_csv(frame_id=frame_counter, event='frame_recieved', timestamp=time.time())
-                
-                
-                buffer = sample.get_buffer()
-                caps = sample.get_caps()
-                width = caps.get_structure(0).get_value("width")
-                height = caps.get_structure(0).get_value("height")
-
-                # Calculate the expected size of an I420 frame
-                expected_size = width * height * 3 // 2  # I420 has 1.5 bytes per pixel
-                if buffer.get_size() != expected_size:
-                    print("Buffer size does not match expected size.")
-                    return Gst.FlowReturn.ERROR
-
-                #start_time = time.perf_counter()
-                buffer = buffer.extract_dup(0, buffer.get_size())
-                frame = np.ndarray((height + height // 2, width), buffer=buffer, dtype=np.uint8)
-
-                # Convert I420 (YUV) to BGR for display with OpenCV
-                frame = cv2.cvtColor(frame, cv2.COLOR_YUV2BGR_I420)
-
-                #print(f"Frame converted in {(time.perf_counter() - start_time)*1000}ms")
-                
-                
-                # Put the frame in the queue for the main thread to display
-                self.frame_queue.put((self.rtsp_url, frame, frame_counter))
-                self.new_frame_received = True
-                
-                return Gst.FlowReturn.OK
-            return Gst.FlowReturn.ERROR
-        except Exception as e:
-            print(f"Error in pipeline: {e}")
-            self.check_and_restart_pipeline()
-            return Gst.FlowReturn.ERROR
-
-    def start(self):
-        self.is_running = True
-        self.pipeline.set_state(Gst.State.PLAYING)
-        self.check_and_restart_thread = threading.Thread(target=self.monitor_pipeline)
-        self.check_and_restart_thread.start()
-
-    def stop(self):
-        self.is_running = False
-        self.pipeline.set_state(Gst.State.NULL)
-        
-            
-    def monitor_pipeline(self):
-        last_frame_time = None
-        while self.is_running:
-            current_time = time.time()
-
-            # Check if the pipeline is in the expected state
-            state = self.pipeline.get_state(Gst.CLOCK_TIME_NONE).state
-            if state != Gst.State.PLAYING:
-                self.restart_pipeline()
-
-            # Check if frames are being received
-            if last_frame_time is not None and (current_time - last_frame_time) > FRAME_RECEIVE_TIMEOUT:
-                print("No frames received for a while. Attempting to restart...")
-                self.restart_pipeline()
-
-            # Update last_frame_time if a new frame has been received
-            if self.new_frame_received:
-                last_frame_time = current_time
-                self.new_frame_received = False
-
-            time.sleep(CHECK_INTERVAL)  # Check every few seconds
-
-
-def dummy_frame(): 
+def dummy_frame(tag = ""): 
         # Generate a dummy frame
 
         # Background
         frame = np.full((720, 1280, 3), (95, 83, 25), dtype=np.uint8)
         
         # setup text
-        font = cv2.FONT_HERSHEY_DUPLEX
-        text = "No framesesdfg available"
+        font = cv2.FONT_HERSHEY_SIMPLEX
+        text = "No frames available"
         font_scale = 1.5
         font_thickness = 2
 
@@ -210,13 +89,12 @@ def dummy_frame():
         
         # add text centered on image
         cv2.putText(frame, text, (int(textX), int(textY) ), font, font_scale, (240, 243, 245), font_thickness)
+        cv2.putText(frame, f"From {tag}", (int(textX), int(textY+50) ), font, font_scale*0.5, (240, 243, 245), font_thickness//2)
         return frame
     
 
     
 def display_rtsp_frames_same_window(cam_grabbers, enable_logging=False):
-    #global last_frame_time
-    
     cv2.namedWindow("Combined Frames", cv2.WINDOW_NORMAL)
     primary_index = 0  # Index to determine which frame is primary
 
@@ -225,6 +103,7 @@ def display_rtsp_frames_same_window(cam_grabbers, enable_logging=False):
         frames_to_display = []
 
         for i, grabber in enumerate(cam_grabbers):
+            tag = grabber.rtsp_url
             frame = None
             now = time.time()
             frame = grabber.get_frame()
@@ -258,7 +137,6 @@ def display_rtsp_frames_same_window(cam_grabbers, enable_logging=False):
 def main(rtsp_urls, enable_logging=False):
     rtsp_grabbers = [RTSPCamGrabber(rtsp_url=url) for url in rtsp_urls]
     
-    # Display frames in the main thread
     try:
         display_rtsp_frames_same_window(rtsp_grabbers, enable_logging=enable_logging)
     except Exception as e:
@@ -269,9 +147,6 @@ def main(rtsp_urls, enable_logging=False):
     
 
     cv2.destroyAllWindows()
-
-
-
 
 
 if __name__ == "__main__":

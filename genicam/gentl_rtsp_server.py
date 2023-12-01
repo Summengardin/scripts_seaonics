@@ -30,7 +30,7 @@ Gst.debug_set_default_threshold(0)
 Gst.init(None)
 
 W = 1280
-H = 720
+H = 1024
 FPS = 100
 FPS_PRINT_INTERVAL = 1
 GUID_FRAME_ID = 0
