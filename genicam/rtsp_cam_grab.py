@@ -126,16 +126,15 @@ class RTSPCamGrabberProcess():
             "! videoconvert " 
             "! appsink emit-signals=True name=sink"
         )
-
         pipeline = Gst.parse_launch(pipeline_str)
-        printable_pipeline_str = pipeline_str.replace('! ', '! \n')
-        print(f"Created pipeline: {printable_pipeline_str}")   
+        
         sink = pipeline.get_by_name('sink')
         sink.set_property('emit-signals', True)
         sink.set_property('max-buffers', 1)
         sink.set_property('drop', True)
         sink.set_property('sync', False)
         sink.connect('new-sample', self.on_new_sample, sink)
+        
         return pipeline
     
     def run(self):
