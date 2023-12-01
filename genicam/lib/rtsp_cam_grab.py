@@ -165,6 +165,9 @@ class RTSPCamGrabberProcess():
         self.pipeline.set_state(Gst.State.NULL)
         self.pipeline = self.create_pipeline()
         self.pipeline.set_state(Gst.State.PLAYING)
+        if self.pipeline.get_state(0)[1] != Gst.State.PLAYING:
+            print('Pipeline failed to restart')
+
  
         
     def monitor_pipeline(self):

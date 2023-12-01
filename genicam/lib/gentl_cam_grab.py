@@ -46,7 +46,6 @@ class CamGrabber():
         self.cam_grabber_process = CamGrabberProcess(SERIAL_NUMBER_ACE2, H, W, D)
         self.last_frame = None
         
-        
         self.last_new_frame_time = time.time()
         self.max_frame_time = 2 #s
         
@@ -57,11 +56,9 @@ class CamGrabber():
         self.H = H
         self.W = W
         self.D = D
-        
-    def __enter__(self):
-        return self
-    
-    def get_newest_frame(self) -> (np.ndarray[typing.Any, np.dtype[np.uint8]], float) or None:      
+ 
+ 
+    def get_frame(self) -> (np.ndarray[typing.Any, np.dtype[np.uint8]]) or None:      
         with self.cam_grabber_process.lock:
             now = time.time()
             if self.cam_grabber_process.new_frame_available.value:
@@ -70,26 +67,32 @@ class CamGrabber():
                             
                 frame = np.asarray(self.cam_grabber_process.frame_arr).reshape(self.H,self.W,self.D)
                 
-                # Add timestamp for latencey calculation
-                frame = (frame, self.cam_grabber_process.last_frame_time.value)
                 
-                self.last_frame = frame
-                #frame = np.asarray(self.cam_grabber_process.frame_arr, dtype=np.int32).reshape(H,W,1)
-                #frame = frame.astype(np.uint8)   
+                self.last_frame = frame 
                 
                 return frame
             else:
                 if (now - self.last_new_frame_time > self.max_frame_time):
-                    return None, 0
+                    return None
                 return self.last_frame
-
             
+    def get_frame_with_timestamp(self) -> (np.ndarray[typing.Any, np.dtype[np.uint8]], float) or None:
+        frame = self.get_frame()
+        with self.cam_grabber_process.lock:
+            return frame, self.cam_grabber_process.last_frame_time.value
+
+  
     def is_connected(self) -> bool:
         return self.cam_grabber_process.is_connected.value
+    
     
     def is_active(self) -> bool:
         return True
         return self.cam_grabber_process.is_running.value
+    
+    
+    def __enter__(self):
+        return self
     
     def __exit__(self, exc_type, exc_value, traceback):
         self.stop()
@@ -360,7 +363,7 @@ if __name__== "__main__":
         time.sleep(3)
         while cam_grabber.is_active():
             if cam_grabber.is_connected():
-                frame = cam_grabber.get_newest_frame()
+                frame = cam_grabber.get_frame()
                 
                 if frame is not None:
                     cv2.cvtColor(frame, cv2.COLOR_RGB2BGR, frame)

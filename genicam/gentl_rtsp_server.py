@@ -57,18 +57,11 @@ class RTSPServer:
         
         self.pts = 0
         self.time_per_frame = Gst.SECOND / FPS
-        self.current_pts = 0
-        
-        
-        
+
         if not no_cam:
             self.setup_cam_grabber()
             
             
-            
-
-        # Set up the pipeline
-        
         test_str = ("videotestsrc is-live=true ! nvvidconv ! nvv4l2h264enc ! rtph264pay config-interval=1 pt=96 name=pay0")
         
         launch_str = (
@@ -128,18 +121,8 @@ class RTSPServer:
             self.launch_str = test_str
         else:
             self.launch_str = launch_str_4_WORKING
-        
-        
-        
         self.setup_factory()
 
-        # Set the "protocols" property of the factory
-        #protocols = GstRtsp.RTSPLowerTrans.UDP | GstRtsp.RTSPLowerTrans.UDP_MCAST 
-        #self.factory.set_protocols(protocols)
-        #print(self.factory.get_protocols())
-
-        
-        # Set up the main loop
         self.loop = GLib.MainLoop()
         self.context = self.loop.get_context()
 
@@ -163,7 +146,7 @@ class RTSPServer:
         self.factory.set_latency(0)
         
         self.mounts.add_factory(self.mount_point, self.factory)
-        self.server_source_id = self.server.attach()
+        self.server.attach(None)
         
         self.factory.connect('media-configure', self.on_media_configure)
         self.server.connect('client-connected', self.on_client_connected)
@@ -179,33 +162,71 @@ class RTSPServer:
         self.client = client
         self.client.connect('closed', self.on_client_disconnected)
         
+        
     def on_client_disconnected(self, user_data):
         print("Client disconnected: ", self.client.get_connection().get_ip())
-        self.restart_server()
-
+        print(f"Sesssion pool size before cleanup: {self.server.get_session_pool().get_n_sessions()}")
+        def filter_func(pool, session):
+            return GstRtspServer.RTSPFilterResult.REMOVE
+        self.server.get_session_pool().filter(filter_func)
+        print(f"Sesssion pool size after cleanup: {self.server.get_session_pool().get_n_sessions()}")
 
     def on_media_configure(self, factory, media):
         self.source = media.get_element().get_child_by_name('source')
         if self.source:
             self.source.connect('need-data', self.on_need_data)
         
-        # Connect to the 'media-configure' signal to handle TEARDOWN
-        media.connect("new-state", self.on_new_state, factory)
-        
         self.frame_counter = 0
         print("Media configured")
-        #GLib.timeout_add(33, self.feed_frame)
-        
-    def on_new_state(self, media, old_state, new_state):
-        if new_state == Gst.State.NULL:
-            self.handle_teardown(media, self.factory)
-            
-    def handle_teardown(self, media, factory):
-        print("Handling TEARDOWN for media:", media)
+       
 
     def on_need_data(self, src, length):
         self.feed_frame(src)
         return True
+    
+    
+    def feed_frame(self, src):
+
+        if not self.no_cam:
+            try:
+                if self.enable_logging: 
+                    frame, timestamp = self.cam_grabber.get_frame_with_timestamp()   
+                    self.frame_counter += 1
+                    write_to_csv(frame_id=self.frame_counter, event="frame_grabbed", timestamp=timestamp)   
+                else: 
+                    frame = self.cam_grabber.get_frame()
+            except Exception as e:
+                print(f"Error getting frame: {e}")
+                frame, timestamp = None, 0       
+            
+            self.fps_counter += 1
+        else:
+            frame = None
+        
+        if frame is None:
+            frame = self.create_dummy_frame()
+        else:
+            self.fps_counter, self.last_fps_print_time = self.__print_fps(self.fps_counter, self.last_fps_print_time)
+        
+        data = frame.tobytes()
+        
+        if data is None:
+            src.emit('end-of-stream')
+            return False
+
+        gst_buffer = Gst.Buffer.new_wrapped(data)
+        gst_buffer.pts = self.pts
+        gst_buffer.duration = self.time_per_frame
+        self.pts += self.time_per_frame  
+        
+        ret = src.emit('push-buffer', gst_buffer)
+        if ret != Gst.FlowReturn.OK:
+            print("Error pushing buffer")
+            
+        if self.enable_logging:    
+            write_to_csv(frame_id=self.frame_counter, event="frame_pushed", timestamp=time.time())
+            
+        return True  # Return True to keep the timeout active
     
     def create_dummy_frame(self):
         frame = np.full((self.H, self.W, 3), (25, 83, 95), dtype=np.uint8)
@@ -223,77 +244,18 @@ class RTSPServer:
         cv2.putText(frame, text, (int(textX), int(textY) ), font, font_scale, (240, 243, 245), font_thickness)
         
         return frame
-    
-    def feed_frame(self, src):
 
-        
-        if not self.no_cam:
-            # Extract timestamp from the frame
-            try:
-                frame, timestamp = self.cam_grabber.get_newest_frame()
-            except Exception as e:
-                print(f"Error getting frame: {e}")
-                frame, timestamp = None, 0
-            #frame = self.cam_grabber.get_newest_frame()
-            self.frame_counter += 1
-            write_to_csv(frame_id=self.frame_counter, event="frame_grabbed", timestamp=timestamp)
-            
-            self.fps_counter += 1
-        else:
-            frame = None
-        
-        if frame is None:
-            frame = self.create_dummy_frame()
-        else:
-            self.fps_counter, self.last_fps_print_time = self.__print_fps(self.fps_counter, self.last_fps_print_time)
-        
-        data = frame.tobytes()
-        
-        if data is None:
-            src.emit('end-of-stream')
-            return False
-
-        #buf = Gst.Buffer.new_allocate(None, len(data), None)
-        #buf.fill(0, data)      
-        
-        # convert np.ndarray to Gst.Buffer
-        gst_buffer = Gst.Buffer.new_wrapped(data)
-        
-         # Set buffer PTS and duration
-        gst_buffer.pts = self.current_pts
-        gst_buffer.duration = self.time_per_frame
-        self.current_pts += self.time_per_frame  
-        
-        retval = src.emit('push-buffer', gst_buffer)
-        if retval != Gst.FlowReturn.OK:
-            print("Error pushing buffer")
-        write_to_csv(frame_id=self.frame_counter, event="frame_pushed", timestamp=time.time())
-        return True  # Return True to keep the timeout active
 
     def start(self):
         print(f"Starting RTSP server on port {self.server.get_service()}")
         
         try:
+            self.server.attach(None)
             self.loop.run()
         except KeyboardInterrupt:
-            pass  # Allow clean exit on Ctrl+C
+            pass
+            
     
-    def restart_server(self):
-        # Stop the server
-        
-        
-        # remove from maincontext
-        if self.server_source_id:
-            GLib.source_remove(self.server_source_id)
-            self.server_source_id = None
-            print("Server removed from main context")
-        
-        # Reinitialize the server
-        self.setup_factory()
-        #self.__init__(self.port, self.mount_point, self.no_cam, self.test_src, self.W, self.H, self.FPS, self.enable_logging)
-
-        # Start the server again
-        self.start()
     
     def stop(self):
         if not self.no_cam:
