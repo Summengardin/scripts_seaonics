@@ -21,18 +21,23 @@ FRAME_RECEIVE_TIMEOUT = 1 # seconds
 
 
 class RTSPCamGrabber():
-    def __init__(self, rtsp_url, W=1280, H=720, FPS=100, cam_id=0) -> None:
-        self.cam_grabber_process = RTSPCamGrabberProcess(rtsp_url, W, H, FPS, cam_id)   
+    def __init__(self, rtsp_url, W=1280, H=720, FPS=100, cam_id=0) -> None: 
+        self.rtsp_url = rtsp_url
+        self.W = W
+        self.H = H
+        self.FPS = FPS
+        self.cam_id = cam_id
         
         self.last_frame = None
         self.last_new_frame_time = time.time()
         self.max_frame_age = 1 # seconds
         self.dummy_frame = self.create_dummy_frame()
         
-        
+        self.cam_grabber_process = RTSPCamGrabberProcess(rtsp_url, W, H, FPS, cam_id)  
         self.p = multiprocessing.Process(target=self.cam_grabber_process.run, args=())
         self.p.daemon = CAM_GRABBER_PROCESS_SILENT
         self.p.start()
+        
         
     def get_frame(self):
         with self.cam_grabber_process.lock:
@@ -51,6 +56,7 @@ class RTSPCamGrabber():
                     return self.dummy_frame
                 return self.last_frame
         
+        
     def stop(self):
         try:
             
@@ -67,6 +73,7 @@ class RTSPCamGrabber():
             pass
         
         print('Stopped RTSP grabber')
+        
         
     def create_dummy_frame(self):
         frame = np.full((self.cam_grabber_process.H, self.cam_grabber_process.W, 3), (95, 83, 25), dtype=np.uint8)
@@ -89,12 +96,10 @@ class RTSPCamGrabber():
     
     def __del__(self):
         self.stop()
-    
-    
+     
     def __enter__(self):
         return self   
-        
-        
+         
     def __exit__(self, exc_type, exc_value, traceback):
         self.stop()
          
