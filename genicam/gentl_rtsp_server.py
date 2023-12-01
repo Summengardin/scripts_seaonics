@@ -11,6 +11,23 @@
 # gst-launch-1.0 rtspsrc location=rtsp://127.0.0.1:8554/test latency=0 ! rtph264depay ! h264parse ! nvv4l2decoder enable-max-performance=1 ! nvvidconv ! autovideosink sync=0
 
 
+'''
+NOTE-TO-SELF:
+
+1.des.23
+(Nesten) alt funker
+    - Stream
+    - Display (kan skifte mellom kameraer)
+    - Kamera kan plugges ut
+    - Server kan stoppes og startes igjen, clinten reconnecter
+Utenom det
+    - Om klienten kobler fra, så må serveren restartes for at klienten skal kunne koble til igjen
+
+
+'''
+
+
+
 
 import time
 import gi
