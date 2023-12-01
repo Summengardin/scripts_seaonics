@@ -181,8 +181,10 @@ class RTSPCamGrabberProcess():
                 continue
                 
             # Check if frames are still being received
-            continue
             with self.lock:
+                print(f'Now: {now}')
+                print(f'Last frame time: {self.last_frame_time.value}')
+                
                 last_frame_age = now - self.last_frame_time.value
                 if last_frame_age > FRAME_RECEIVE_TIMEOUT:
                     print(f'No frames received for {last_frame_age} seconds')
