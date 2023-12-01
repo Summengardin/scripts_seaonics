@@ -139,14 +139,20 @@ class RTSPServer:
         print("Setting up factory")
         self.server = GstRtspServer.RTSPServer.new()
         self.server.set_service(self.port)
+        
+        
         self.mounts = self.server.get_mount_points()
         
         self.factory = GstRtspServer.RTSPMediaFactory.new()
         self.factory.set_launch(self.launch_str)
         self.factory.set_latency(0)
+        self.factory.set_shared(True)
+        self.factory.set_stop_on_disconnect(True) 
         
         self.mounts.add_factory(self.mount_point, self.factory)
         self.server.attach(None)
+        
+        print(f"is_shared: {self.factory.is_shared()}")
         
         self.factory.connect('media-configure', self.on_media_configure)
         self.server.connect('client-connected', self.on_client_connected)
@@ -165,11 +171,13 @@ class RTSPServer:
         
     def on_client_disconnected(self, user_data):
         print("Client disconnected: ", self.client.get_connection().get_ip())
-        print(f"Sesssion pool size before cleanup: {self.server.get_session_pool().get_n_sessions()}")
+        print(f"Session pool size before cleanup: {self.server.get_session_pool().get_n_sessions()}")
         def filter_func(pool, session):
             return GstRtspServer.RTSPFilterResult.REMOVE
         self.server.get_session_pool().filter(filter_func)
-        print(f"Sesssion pool size after cleanup: {self.server.get_session_pool().get_n_sessions()}")
+        self.server.get_session_pool().cleanup()
+        print(f"Session pool size after cleanup: {self.server.get_session_pool().get_n_sessions()}")
+
 
     def on_media_configure(self, factory, media):
         self.source = media.get_element().get_child_by_name('source')
