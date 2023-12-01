@@ -11,3 +11,10 @@ CAM_GRABBER_PROCESS_SILENT = False
 NO_CAM_COUNTER_MAX = 20
 FPS_PRINT_INTERVAL = 1 # [s]
 ...
+
+
+---
+# 
+
+
+...

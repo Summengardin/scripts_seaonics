@@ -48,7 +48,7 @@ for viewer in frame_grabbers:
 '''
 
 
-from rtsp_cam_grab import RTSPCamGrabber
+from lib.rtsp_cam_grab import RTSPCamGrabber
 
 
 gi.require_version('Gst', '1.0')
@@ -213,81 +213,6 @@ def dummy_frame():
         return frame
     
 
-def display_frames(frame_queues, enable_logging=False):
-    global last_frame_time
-    last_frames = {q: None for q in frame_queues}  # Store the last frame of each queue
-
-    while True:
-        for q in frame_queues:
-            frame = None
-            now = time.time()
-            if not q.empty():
-                rtsp_url, frame, frame_count = q.get()
-                last_frames[q] = (rtsp_url, frame, frame_count)  # Update last frame for this queue
-                last_frame_time = now
-            elif now - last_frame_time <= 2 and last_frames[q] is not None:
-                rtsp_url, frame, frame_count = last_frames[q]  # Use the last frame if queue is empty
-            
-            if frame is not None:
-                if enable_logging: write_to_csv(frame_id=frame_count, event='frame_displayed', timestamp=time.time())
-            else:
-                frame = dummy_frame()
-            
-            cv2.imshow(rtsp_url, frame)
-            if cv2.waitKey(1) & 0xFF == ord('q'):
-                return
-
-
-def display_frames_same_window(frame_queues, enable_logging=False):
-    global last_frame_time
-    last_frames = {q: None for q in frame_queues}  # Store the last frame of each queue 
-    
-    cv2.namedWindow("Combined Frames", cv2.WINDOW_NORMAL)
-    primary_index = 0  # Index to determine which frame is primary
-
-
-    while True:
-        frames_to_display = []
-
-        for i, q in enumerate(frame_queues):
-            frame = None
-            now = time.time()
-            if not q.empty():
-                rtsp_url, frame, frame_count = q.get()
-                last_frames[q] = (rtsp_url, frame, frame_count)  # Update last frame for this queue
-                last_frame_time = now
-            elif now - last_frame_time <= 2 and last_frames[q] is not None:
-                rtsp_url, frame, frame_count = last_frames[q]  # Use the last frame if queue is empty
-
-            if frame is not None:
-                if enable_logging: write_to_csv(frame_id=frame_count, event='frame_displayed', timestamp=time.time())
-                frames_to_display.append(frame)
-            else:
-                frame = dummy_frame()
-                cv2.putText(frame, str(i), (50, 200), cv2.FONT_HERSHEY_DUPLEX, 5, (240, 243, 245), 2)
-                frames_to_display.append(frame)
-
-        # Merge the frames horizontally or vertically
-        if frames_to_display:
-            # Decide which frame is primary and which is secondary
-            primary_frame = frames_to_display[primary_index]
-            secondary_frame = frames_to_display[1 - primary_index]
-
-            # Resize secondary frame to be smaller, e.g., 1/4th of the primary frame
-            small_frame = cv2.resize(secondary_frame, (primary_frame.shape[1] // 4, primary_frame.shape[0] // 4))
-
-            # Place the small frame on the top-right corner of the primary frame
-            primary_frame[-small_frame.shape[0]:, -small_frame.shape[1]:] = small_frame
-
-            # Show the combined frame
-            cv2.imshow("Combined Frames", primary_frame)
-
-        # Check for spacebar press or window close
-        key = cv2.waitKey(1) & 0xFF
-        if key == ord(' '):  # Spacebar pressed
-            primary_index = 1 - primary_index  # Swap the primary frame
-        elif key == ord('q') or cv2.getWindowProperty('Combined Frames', cv2.WND_PROP_VISIBLE) < 1:
-            break
     
 def display_rtsp_frames_same_window(cam_grabbers, enable_logging=False):
     #global last_frame_time
@@ -311,20 +236,16 @@ def display_rtsp_frames_same_window(cam_grabbers, enable_logging=False):
                 cv2.putText(frame, str(i), (50, 200), cv2.FONT_HERSHEY_DUPLEX, 5, (240, 243, 245), 2)
                 frames_to_display.append(frame)
 
-        # Merge the frames horizontally or vertically
         if frames_to_display:
-            # Decide which frame is primary and which is secondary
             primary_frame = frames_to_display[primary_index]
             secondary_frame = frames_to_display[1 - primary_index]
 
-            # Resize secondary frame to be smaller, e.g., 1/4th of the primary frame
             small_frame = cv2.resize(secondary_frame, (primary_frame.shape[1] // 4, primary_frame.shape[0] // 4))
 
-            # Place the small frame on the top-right corner of the primary frame
-            primary_frame[-small_frame.shape[0]:, -small_frame.shape[1]:] = small_frame
+            combined_frame = primary_frame.copy()
+            combined_frame[-small_frame.shape[0]:, -small_frame.shape[1]:] = small_frame
 
-            # Show the combined frame
-            cv2.imshow("Combined Frames", primary_frame)
+            cv2.imshow("Combined Frames", combined_frame)
 
         # Check for spacebar press or window close
         key = cv2.waitKey(1) & 0xFF

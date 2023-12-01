@@ -1,3 +1,0 @@
-gst-launch-1.0 videotestsrc caps="video/x-raw, format=BGR" ! nvvidconv ! nvv4l2h264enc ! h264parse ! rtph264pay config-interval=1 pt=96 name=pay0 ! udpsink host=127.0.0.1 port=5000
-
-

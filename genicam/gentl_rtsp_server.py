@@ -15,7 +15,7 @@
 import time
 import gi
 import numpy as np
-import gentl_cam_grab as camgrab
+import lib.gentl_cam_grab as camgrab
 import cv2
 import csv
 

@@ -84,7 +84,7 @@ class CamGrabber():
             p.daemon = True
             p.start()
         
-
+    
     def get_new_frame_lower_right(self) -> np.ndarray[typing.Any, np.dtype[typing.Any]] | None:
         if self.dummy_imgs:
             return self.example_img
