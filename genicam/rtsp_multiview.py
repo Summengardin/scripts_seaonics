@@ -108,7 +108,7 @@ def display_rtsp_frames_same_window(cam_grabbers, enable_logging=False):
             now = time.time()
             frame = grabber.get_frame()
             if frame is not None:
-                if enable_logging: write_to_csv(frame_id=frame_count, event='frame_displayed', timestamp=time.time())
+                #if enable_logging: write_to_csv(frame_id=frame_count, event='frame_displayed', timestamp=time.time())
                 frames_to_display.append(frame)
             else:
                 frame = dummy_frame()
