@@ -95,7 +95,8 @@ def dummy_frame(tag = ""):
 
     
 def display_rtsp_frames_same_window(cam_grabbers, enable_logging=False):
-    cv2.namedWindow("Combined Frames", cv2.WINDOW_NORMAL)
+    cv2.namedWindow("Combined Frames", cv2.WND_PROP_FULLSCREEN)
+    cv2.setWindowProperty("Combined Frames", cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
     primary_index = 0  # Index to determine which frame is primary
 
 
