@@ -1,0 +1,8 @@
+version: '3.4'
+
+services:
+  scriptsseaonics:
+    image: scriptsseaonics
+    build:
+      context: .
+      dockerfile: ./Dockerfile
