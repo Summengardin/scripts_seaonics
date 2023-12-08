@@ -13,8 +13,8 @@ gi.require_version('Gst', '1.0')
 from gi.repository import Gst
 
 
-Gst.debug_set_active(True)
-Gst.debug_set_default_threshold(5)
+Gst.debug_set_active(False)
+Gst.debug_set_default_threshold(0)
 Gst.init(None)
 
 
