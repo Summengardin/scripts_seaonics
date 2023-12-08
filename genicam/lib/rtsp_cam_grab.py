@@ -176,9 +176,9 @@ class RTSPCamGrabberProcess():
         while self.is_running.value:
             if restart:
                 self.restart_pipeline()
+                time.sleep(10)
             restart = False
 
-            time.sleep(3)
 
             if not self.is_running.value:
                 break
