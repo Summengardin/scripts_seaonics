@@ -8,7 +8,6 @@ import typing
 import ctypes
 import cv2
 import gi
-from threading import Event
 
 
 gi.require_version('Gst', '1.0')
@@ -122,7 +121,7 @@ class RTSPCamGrabberProcess():
         self.new_frame_available = multiprocessing.Value('b', False)
         self.last_frame_time = multiprocessing.Value('d', 0)
         self.is_running = multiprocessing.Value('b', False)
-        self.exit_event = Event()
+        self.exit_event = multiprocessing.Event()
         
         self.pipeline = None
         self.pipeline = self.create_pipeline()
@@ -160,7 +159,7 @@ class RTSPCamGrabberProcess():
     def stop(self):
         with self.lock:
             self.is_running.value = False
-        self.exit_event.set()
+            self.exit_event.set()
         print('RTSP grabber process is stopping')
         self.check_and_restart_thread.join()
         self.pipeline.set_state(Gst.State.NULL)
