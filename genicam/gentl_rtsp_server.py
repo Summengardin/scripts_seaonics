@@ -45,8 +45,8 @@ gi.require_version('GstRtspServer', '1.0')
 from gi.repository import Gst, GLib, GstRtspServer, GstRtsp
 
 
-Gst.debug_set_active(False)
-Gst.debug_set_default_threshold(0)
+Gst.debug_set_active(True)
+Gst.debug_set_default_threshold(3)
 
 Gst.init(None)
 
