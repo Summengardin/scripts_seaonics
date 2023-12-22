@@ -82,7 +82,7 @@ class RTSPCamGrabber():
         
     def create_dummy_frame(self, message=None):
         if message is None:
-            message = f"No frame from\n{self.rtsp_url}"
+            message = f"No frame from {self.rtsp_url}"
         frame = np.full((self.H, self.W, 3), (95, 83, 25), dtype=np.uint8)
 
         font = cv2.FONT_HERSHEY_SIMPLEX
