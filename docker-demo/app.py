@@ -1,6 +1,11 @@
 import numpy as np
+import argparse
 
-a = 3
+argparser = argparse.ArgumentParser(description='Process some integers.')
+argparser.add_argument('-i', type=int, default=0,
+                    help='a number')
+
+a = argparser.parse_args().i
 b = 5
 
 c = a + b

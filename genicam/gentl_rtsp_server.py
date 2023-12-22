@@ -35,6 +35,7 @@ import numpy as np
 import lib.gentl_cam_grab as camgrab
 import cv2
 import csv
+import argparse
 
 gi.require_version('Gst', '1.0')
 gi.require_version('GstRtspServer', '1.0')
@@ -53,6 +54,11 @@ FPS_PRINT_INTERVAL = 1
 GUID_FRAME_ID = 0
 
 
+argparser = argparse.ArgumentParser(description='RTSP server')
+argparser.add_argument('--port', type=str, default="8554", help='Port to run RTSP server on')
+argparser.add_argument('-c', '--cti', type=str, default="", help='Relative path to .cti file')
+
+
 def write_to_csv(filename = '/home/seaonics/Desktop/scripts_seaonics/genicam/log/events_sender.csv', frame_id=0, event='unknown', timestamp=0):
     #print(f"Writing to csv: {filename} \t {frame_id}, {event}, {timestamp}")
     with open(filename, 'a', newline='') as file:
@@ -62,7 +68,7 @@ def write_to_csv(filename = '/home/seaonics/Desktop/scripts_seaonics/genicam/log
 
 
 class RTSPServer:
-    def __init__(self, port="8554", mount_point="/test", no_cam = False, test_src = False, W=W, H=H, FPS=FPS, enable_logging=False):
+    def __init__(self, port="8554", mount_point="/test", no_cam = False, test_src = False, W=W, H=H, FPS=FPS, enable_logging=False, cti_file=""):
         self.port = port
         self.mount_point = mount_point
         self.no_cam = no_cam
@@ -71,12 +77,13 @@ class RTSPServer:
         self.W = W
         self.FPS = FPS
         self.enable_logging = enable_logging
+        self.cti_file = cti_file
         
         self.pts = 0
         self.time_per_frame = Gst.SECOND / FPS
 
         if not no_cam:
-            self.setup_cam_grabber()
+            self.setup_cam_grabber(self.cti_file)
             
             
         test_str = ("videotestsrc is-live=true ! nvvidconv ! nvv4l2h264enc ! rtph264pay config-interval=1 pt=96 name=pay0")
@@ -176,8 +183,8 @@ class RTSPServer:
 
         
         
-    def setup_cam_grabber(self):
-        self.cam_grabber = camgrab.CamGrabber(W=self.W, H=self.H)
+    def setup_cam_grabber(self, cti_file):
+        self.cam_grabber = camgrab.CamGrabber(W=self.W, H=self.H, cti_file=cti_file)
 
     
     def on_client_connected(self, server, client):
@@ -188,6 +195,9 @@ class RTSPServer:
         
     def on_client_disconnected(self, user_data):
         print("Client disconnected: ", self.client.get_connection().get_ip())
+        self.stop()
+        raise Exception("Client disconnected")
+        
         print(f"Session pool size before cleanup: {self.server.get_session_pool().get_n_sessions()}")
         def filter_func(pool, session):
             return GstRtspServer.RTSPFilterResult.REMOVE
@@ -301,11 +311,21 @@ class RTSPServer:
         
         
 if __name__ == "__main__":
-    # Usage:
-    server = RTSPServer(no_cam=False, test_src=False, enable_logging=False)
-    try:
-        server.start()
-    except Exception as e:
-        print(f"An error occurred: {e}")
+    args = argparser.parse_args()
+    port = args.port
+    cti_file = args.cti
+    
+    while True:
+        print(f"Starting new RTSP server on port {port}")
+        server = RTSPServer(no_cam=False, test_src=False, enable_logging=False, port=port, cti_file=cti_file)
+        try:
+            server.start()
+        except Exception as e:
+            print(f"An error occurred: {e}")
+        finally:
+            server.stop()
+            server = None
+            time.sleep(10)
+            print("\n\n\n")
 
     server.stop()

@@ -1,4 +1,5 @@
 **/venv
+**/.venv
 **/DeepStream-Yolo
 **/ultralytics
 **/nvdsinfer_custom_impl_Yolo

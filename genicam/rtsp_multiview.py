@@ -95,8 +95,9 @@ def dummy_frame(tag = ""):
 
     
 def display_rtsp_frames_same_window(cam_grabbers, enable_logging=False):
-    cv2.namedWindow("Combined Frames", cv2.WND_PROP_FULLSCREEN)
+    cv2.namedWindow("Combined Frames", cv2.WINDOW_KEEPRATIO | cv2.WINDOW_NORMAL)
     cv2.setWindowProperty("Combined Frames", cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
+
     primary_index = 0  # Index to determine which frame is primary
 
 
@@ -132,7 +133,7 @@ def display_rtsp_frames_same_window(cam_grabbers, enable_logging=False):
             cv2.rectangle(combined_frame, (x_offset, y_offset), (x_offset + small_frame.shape[1], y_offset + small_frame.shape[0]), border_color, frame_thickness)
             #combined_frame[y_offset:y_offset+small_frame.shape[0], x_offset:x_offset+small_frame.shape[1]] = small_frame
             combined_frame[-small_frame.shape[0]:, -small_frame.shape[1]:] = small_frame 
-
+            cv2.putText(combined_frame, "Press 'q' to exit", (20, primary_frame.shape[0] - 20), cv2.FONT_HERSHEY_DUPLEX, 0.4, (240, 243, 245), 1)
            
             cv2.imshow("Combined Frames", combined_frame)
             
@@ -141,7 +142,8 @@ def display_rtsp_frames_same_window(cam_grabbers, enable_logging=False):
         key = cv2.waitKey(1) & 0xFF
         if key == ord(' '):  # Spacebar pressed
             primary_index = 1 - primary_index  # Swap the primary frame
-        elif key == ord('q') or cv2.getWindowProperty('Combined Frames', cv2.WND_PROP_VISIBLE) < 1:
+        elif key == ord('q') or key == 27 or cv2.getWindowProperty('Combined Frames', cv2.WND_PROP_VISIBLE) < 1:
+            # 'q', ESC or window closed
             break
 
 

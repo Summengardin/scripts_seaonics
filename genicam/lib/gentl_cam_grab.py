@@ -42,8 +42,8 @@ FPS_PRINT_INTERVAL = 1 # [s]
 
 
 class CamGrabber():
-    def __init__(self, H = H, W = W, D = D) -> None:
-        self.cam_grabber_process = CamGrabberProcess(SERIAL_NUMBER_ACE2, H, W, D)
+    def __init__(self, H = H, W = W, D = D, cti_file=PRODUCER_PATH) -> None:
+        self.cam_grabber_process = CamGrabberProcess(SERIAL_NUMBER_ACE2, H, W, D, cti_file)
         self.last_frame = None
         
         self.last_new_frame_time = time.time()
@@ -113,14 +113,14 @@ class CamGrabber():
 
         
 class CamGrabberProcess():
-    def __init__(self, serial_number: str, H=H, W=W, D=D) -> None:
+    def __init__(self, serial_number: str, H=H, W=W, D=D, cti_file=PRODUCER_PATH) -> None:
         self.serial_number = serial_number
-        self.last_frame_time = multiprocessing.Value('d', 0.0)
-        
         self.H = H
         self.W = W
         self.D = D
+        self.cti_file = cti_file if cti_file != "" else PRODUCER_PATH
         
+        self.last_frame_time = multiprocessing.Value('d', 0.0)
         self.frame_arr = multiprocessing.sharedctypes.RawArray(ctypes.c_uint8, self.H*self.W*self.D)
         #self.frame_arr = multiprocessing.sharedctypes.RawArray('i', H*W*1)
         self.lock = multiprocessing.Lock()
@@ -140,7 +140,7 @@ class CamGrabberProcess():
         try:
             gentl_file = self.__check_gentl_file()
         except AssertionError as e:
-            print(f"[ERROR] Could not GenTL file (.cti). Expected to find: {PRODUCER_PATH}")
+            print(f"[ERROR] Could not GenTL file (.cti). Expected to find: {self.cti_file}")
             return
         
         self.h.add_file(gentl_file)
@@ -198,7 +198,7 @@ class CamGrabberProcess():
         try:
             gentl_file = self.__check_gentl_file()
         except AssertionError as e:
-            print(f"[ERROR] Could not GenTL file (.cti). Expected to find: {PRODUCER_PATH}")
+            print(f"[ERROR] Could not GenTL file (.cti). Expected to find: {self.cti_file}")
             return
         
         self.h.add_file(gentl_file)  
@@ -286,8 +286,8 @@ class CamGrabberProcess():
             
     def __check_gentl_file(self):
         #print("[->] Check gentl")
-        if os.path.exists(PRODUCER_PATH):
-            return PRODUCER_PATH
+        if os.path.exists(self.cti_file):
+            return self.cti_file
         else:
             assert False
     
