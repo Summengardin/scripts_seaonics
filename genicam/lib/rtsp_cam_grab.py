@@ -99,8 +99,9 @@ class RTSPCamGrabber():
     
     
     def __del__(self):
-        self.stop()
-     
+        #self.stop()
+        pass
+        
     def __enter__(self):
         return self   
          

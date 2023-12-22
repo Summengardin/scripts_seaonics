@@ -158,7 +158,7 @@ def main(rtsp_urls, enable_logging=False):
     for grabber in rtsp_grabbers:
         grabber.stop()
     
-
+    
     cv2.destroyAllWindows()
 
 
@@ -171,4 +171,4 @@ if __name__ == "__main__":
         
         
     enable_logging = False    
-    main(rtsp_urls)
+    main(rtsp_urls, enable_logging)
