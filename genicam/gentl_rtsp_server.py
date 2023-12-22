@@ -27,7 +27,8 @@ Utenom det
 '''
 
 
-
+from icecream import ic
+import signal
 
 import time
 import gi
@@ -37,6 +38,7 @@ import cv2
 import csv
 import argparse
 import os
+import threading
 
 gi.require_version('Gst', '1.0')
 gi.require_version('GstRtspServer', '1.0')
@@ -69,7 +71,8 @@ def write_to_csv(filename = '/home/seaonics/Desktop/scripts_seaonics/genicam/log
 
 
 class RTSPServer:
-    def __init__(self, port="8554", mount_point="/test", no_cam = False, test_src = False, W=W, H=H, FPS=FPS, enable_logging=False, cti_file=""):
+    def __init__(self, ip='169.254.54.69', port="8554", mount_point="/test", no_cam = False, test_src = False, W=W, H=H, FPS=FPS, enable_logging=False, cti_file=""):
+        self.ip = ip
         self.port = port
         self.mount_point = mount_point
         self.no_cam = no_cam
@@ -82,6 +85,7 @@ class RTSPServer:
         
         self.pts = 0
         self.time_per_frame = Gst.SECOND / FPS
+        self.is_running = False
 
         if not no_cam:
             self.setup_cam_grabber(self.cti_file)
@@ -121,24 +125,18 @@ class RTSPServer:
     "! nvvidconv "
     "! video/x-raw(memory:NVMM), format=(string)I420"
     "! nvv4l2h264enc" #profile=0-Baseline preset-level=4-Ultrafast
-    "! rtph264pay config-interval=0 pt=96 name=pay0")
+    "! rtph264pay config-interval=0 pt=96 name=pay0"
+    )
 
-        
-        launch_str_5_NO_NVIDIA = (f"appsrc name=source is-live=true block=true format=GST_FORMAT_TIME "
-    f"caps=video/x-raw,width={W},height={H},framerate=100/1,format=RGB "
-    "! videoconvert "
-    "! x265enc "
-    "! rtph265pay config-interval=0 pt=96 name=pay0")
-        
-        
-        
-        launch_str_5 = (f"appsrc name=source is-live=true block=true format=GST_FORMAT_TIME "
+        launch_str_5_TESTING = (f"appsrc name=source is-live=true block=true format=GST_FORMAT_TIME "
     f"caps=video/x-raw,width={W},height={H},framerate={FPS}/1,format=RGB "
     "! videoconvert "
     "! nvvidconv "
     "! video/x-raw(memory:NVMM), format=(string)I420"
-    "! nvv4l2h265enc" #profile=0-Baseline preset-level=4-Ultrafast
-    "! rtph265pay config-interval=0 pt=96 name=pay0")
+    "! nvv4l2h264enc" #profile=0-Baseline preset-level=4-Ultrafast
+    "! rtph264pay config-interval=0 pt=96 name=pay0"
+    "! queue")
+
         
         
         
@@ -146,6 +144,7 @@ class RTSPServer:
             self.launch_str = test_str
         else:
             self.launch_str = launch_str_4_WORKING
+            #self.launch_str = launch_str_5_TESTING
         self.setup_factory()
 
         self.loop = GLib.MainLoop()
@@ -163,6 +162,7 @@ class RTSPServer:
     def setup_factory(self):
         print(f"Setting up factory")
         self.server = GstRtspServer.RTSPServer.new()
+        self.server.set_address(self.ip)
         self.server.set_service(self.port)
         
         
@@ -171,16 +171,16 @@ class RTSPServer:
         self.factory = GstRtspServer.RTSPMediaFactory.new()
         self.factory.set_launch(self.launch_str)
         self.factory.set_latency(0)
-        self.factory.set_shared(True)
+        self.factory.set_shared(False)
         self.factory.set_stop_on_disconnect(True) 
+        self.factory.set_protocols(GstRtsp.RTSPLowerTrans.UDP)
         
         self.mounts.add_factory(self.mount_point, self.factory)
-        self.server.attach(None)
-        
-        print(f"is_shared: {self.factory.is_shared()}")
+        #self.server.attach(None)
         
         self.factory.connect('media-configure', self.on_media_configure)
         self.server.connect('client-connected', self.on_client_connected)
+        ic("Factory setup complete")
 
         
         
@@ -189,13 +189,13 @@ class RTSPServer:
 
     
     def on_client_connected(self, server, client):
-        print("Client connected: ", client.get_connection().get_ip())
+        ic("Client connected: ", client.get_connection().get_ip())
         self.client = client
         self.client.connect('closed', self.on_client_disconnected)
         
         
     def on_client_disconnected(self, user_data):
-        print("Client disconnected: ", self.client.get_connection().get_ip())
+        ic("Client disconnected: ", self.client.get_connection().get_ip())
         self.stop()
         raise Exception("Client disconnected")
         
@@ -285,16 +285,16 @@ class RTSPServer:
 
     def start(self):
         print(f"Starting RTSP server on port {self.server.get_service()}")
-        
+        self.is_running = True
         try:
             self.server.attach(None)
             self.loop.run()
         except KeyboardInterrupt:
             pass
-            
-    
     
     def stop(self):
+        self.is_running = False
+        
         try:          
             if not self.no_cam:
                 self.cam_grabber.stop()
@@ -303,7 +303,6 @@ class RTSPServer:
             print("Could not stop RTSP grabbing frames")
         self.loop.quit()
         print("RTSP server stopped")
-
         
         
     def __print_fps(self, fps_counter: int ,last_print_time: float):
@@ -314,25 +313,44 @@ class RTSPServer:
             
         return fps_counter, last_print_time
 
-        
+    
+
         
 if __name__ == "__main__":
     args = argparser.parse_args()
     port = args.port
     cti_file = args.cti
     
-    while True:
-        print(f"Starting new RTSP server on port {port}, PID: {os.getpid()}")
-        server = RTSPServer(no_cam=True, test_src=False, enable_logging=False, port=port, cti_file=cti_file)
-        try:
-            server.start()
-        except Exception as e:
-            print(f"[Error in server main]: {e}")
-        finally:
-            
-            server.stop()
-            server = None
-            time.sleep(10)
-            print("\n\n\n")
+    
+    number_of_servers = 1
+    
 
-    server.stop()
+    
+    # while True:
+    print(f"Starting new RTSP server on port {port}, server number {number_of_servers}")
+    number_of_servers += 1
+    server = RTSPServer(no_cam=False, test_src=False, enable_logging=False, port=port, cti_file=cti_file)
+    
+    
+    def sig_handler(signum, frame):
+        print(f"Caught signal {signum}")
+        try:
+            server.stop()
+        except: 
+            pass
+        exit(0)
+    signal.signal(signal.SIGINT | signal.SIGTERM, sig_handler)
+    try:
+        ic()
+        server.start()
+    except Exception as e:
+        print(f"[Error in server main]: {e}")
+    finally:
+        server.stop()
+        server = None
+        #time.sleep(10)
+
+        #print("\n\n\n")
+
+    #server.stop()
+    

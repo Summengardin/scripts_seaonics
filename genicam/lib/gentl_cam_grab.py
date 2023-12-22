@@ -15,7 +15,7 @@ Fikset restart ved disconnect
     Kom en exception fra harvesters.update()
 
 """
-
+from icecream import ic
 
 import os
 import time
@@ -225,6 +225,7 @@ class CamGrabberProcess():
             print("Found following devices:")
             for device in self.h.device_info_list:
                 properties = device.property_dict
+                ic(properties)
                 print(f"S/N: {properties['serial_number']} | Model: {properties['model']}")
         
             print(f"\nConnecting to camera: {serial_number}")

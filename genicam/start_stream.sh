@@ -18,7 +18,10 @@ if [ -d "$FOLDER_PATH" ]; then
     eval $COMMAND1
 
     # Execute the command
-    echo "Executing command: $COMMAND2"    
+    echo "Executing command: $COMMAND2"
+    echo
+    echo
+    echo    
     eval $COMMAND2
 
     # Keep the terminal open (on some systems, like macOS)
