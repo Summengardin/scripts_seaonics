@@ -1,17 +1,11 @@
 #!/bin/bash
 
-cd /home/seaonics/Desktop/scripts_seaonics/genicam
-source venv/bin/activate
-gnome-terminal -- python3 rtsp_multiview.py
-
-#!/bin/bash
-
 # Replace "/path/to/directory" with the path of the folder you want to open.
 FOLDER_PATH="/home/seaonics/Desktop/scripts_seaonics/genicam"
 
 # Replace "your_command_here" with the command you want to execute in the folder.
-COMMAND1= "source venv/bin/activate"
-COMMAND2= "python3 gentl_rtsp_server.py"
+COMMAND1="source ./venv/bin/activate"
+COMMAND2="python3 rtsp_multiview.py"
 
 # Check if the folder exists
 if [ -d "$FOLDER_PATH" ]; then
@@ -21,8 +15,8 @@ if [ -d "$FOLDER_PATH" ]; then
     
     # Execute the command
     echo "Executing command: $COMMAND1"    
-    eval $COMMAND2
-    
+    eval $COMMAND1
+
     # Execute the command
     echo "Executing command: $COMMAND2"    
     eval $COMMAND2
