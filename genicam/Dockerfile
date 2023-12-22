@@ -1,5 +1,5 @@
 # Use an NVIDIA CUDA base image
-FROM nvidia/cuda:11.1-base-ubuntu20.04
+FROM nvidia/cuda:12.3.1-base-ubuntu20.04
 
 # Set a label for maintaining metadata
 #LABEL maintainer="your-email@example.com"
