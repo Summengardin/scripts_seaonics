@@ -22,7 +22,7 @@ def dummy_frame(tag = ""):
         
         # setup text
         font = cv2.FONT_HERSHEY_SIMPLEX
-        text = "No frames available"
+        text = "Server is not connected"
         font_scale = 1.5
         font_thickness = 2
 

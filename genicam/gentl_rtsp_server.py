@@ -36,6 +36,7 @@ import lib.gentl_cam_grab as camgrab
 import cv2
 import csv
 import argparse
+import os
 
 gi.require_version('Gst', '1.0')
 gi.require_version('GstRtspServer', '1.0')
@@ -160,7 +161,7 @@ class RTSPServer:
         
     
     def setup_factory(self):
-        print("Setting up factory")
+        print(f"Setting up factory")
         self.server = GstRtspServer.RTSPServer.new()
         self.server.set_service(self.port)
         
@@ -239,6 +240,7 @@ class RTSPServer:
             frame = None
         
         if frame is None:
+            msg = "Test frame" if self.no_cam else "No camera connected"
             frame = self.create_dummy_frame()
         else:
             self.fps_counter, self.last_fps_print_time = self.__print_fps(self.fps_counter, self.last_fps_print_time)
@@ -263,11 +265,11 @@ class RTSPServer:
             
         return True  # Return True to keep the timeout active
     
-    def create_dummy_frame(self):
+    def create_dummy_frame(self, message="Dummy frame"):
         frame = np.full((self.H, self.W, 3), (25, 83, 95), dtype=np.uint8)
 
         font = cv2.FONT_HERSHEY_SIMPLEX
-        text = "No frame available"
+        text = message
         font_scale = 1.5
         font_thickness = 2
         textsize = cv2.getTextSize(text, font, font_scale, font_thickness)[0]
@@ -275,7 +277,7 @@ class RTSPServer:
         textX = (frame.shape[1] - textsize[0]) / 2
         textY = (frame.shape[0] + textsize[1]) / 2
         
-        cv2.putText(frame, f"GENTLCamGrabber says:", (int(textX), int(textY-50) ), font, font_scale*0.5, (240, 243, 245), font_thickness//2)
+        cv2.putText(frame, f"RTSPServer says:", (int(textX), int(textY-50) ), font, font_scale*0.5, (240, 243, 245), font_thickness//2)
         cv2.putText(frame, text, (int(textX), int(textY) ), font, font_scale, (240, 243, 245), font_thickness)
         
         return frame
@@ -293,8 +295,12 @@ class RTSPServer:
     
     
     def stop(self):
-        if not self.no_cam:
-            self.cam_grabber.stop()
+        try:          
+            if not self.no_cam:
+                self.cam_grabber.stop()
+                print("RTSP stopped grabbing frames")
+        except:
+            print("Could not stop RTSP grabbing frames")
         self.loop.quit()
         print("RTSP server stopped")
 
@@ -316,13 +322,14 @@ if __name__ == "__main__":
     cti_file = args.cti
     
     while True:
-        print(f"Starting new RTSP server on port {port}")
-        server = RTSPServer(no_cam=False, test_src=False, enable_logging=False, port=port, cti_file=cti_file)
+        print(f"Starting new RTSP server on port {port}, PID: {os.getpid()}")
+        server = RTSPServer(no_cam=True, test_src=False, enable_logging=False, port=port, cti_file=cti_file)
         try:
             server.start()
         except Exception as e:
-            print(f"An error occurred: {e}")
+            print(f"[Error in server main]: {e}")
         finally:
+            
             server.stop()
             server = None
             time.sleep(10)

@@ -65,16 +65,17 @@ class RTSPCamGrabber():
         try:
             
             self.cam_grabber_process.stop()
-            if self.p.is_alive():
+            if True:
+            #if self.p.is_alive():
                 self.p.terminate()
                 print('Terminated RTSP grabber process')
         except:
-            pass
+            print('Could not terminate RTSP grabber process')
         try:
             self.p.join()
             print('Joined RTSP grabber process')
         except:
-            pass
+            print('Could not join RTSP grabber process')
         
         print('Stopped RTSP grabber')
         
