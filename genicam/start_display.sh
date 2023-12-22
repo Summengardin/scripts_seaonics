@@ -5,7 +5,7 @@ FOLDER_PATH="/home/seaonics/Desktop/scripts_seaonics/genicam"
 
 # Replace "your_command_here" with the command you want to execute in the folder.
 COMMAND1="source ./venv/bin/activate"
-COMMAND2="python3 rtsp_multiview.py"
+COMMAND2="python3 monitor_client.py"
 
 # Check if the folder exists
 if [ -d "$FOLDER_PATH" ]; then

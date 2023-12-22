@@ -60,3 +60,5 @@ USER appuser
 
 # During debugging, this entry point will be overridden. For more information, please refer to https://aka.ms/vscode-docker-python-debug
 CMD ["python", "gentl_rtsp_server.py", "-c", "producer/ProducerGEV.cti"]
+
+
