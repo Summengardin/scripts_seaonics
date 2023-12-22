@@ -1,5 +1,10 @@
 
 
+## Terminology
+
+Terminology in terms of the RTSP stream:
+**Client**: The viewer
+**Server**: The sender (camera)
 
 
 ## Getting started
@@ -29,3 +34,7 @@ Install the required packages using :
 # Install packages from requirements.txt
 $ pip3 install -r requirements.txt
 ```
+
+
+## Automagical restarting
+As a hacky solution for automatic restart, two  extra python scripts are made: One for the server [monitor_server.py](monitor_server.py) and one for the client [monitor_client.py](monitor_server.py)
