@@ -1,64 +1,10 @@
-import gi
 import cv2
 import sys
-import threading
-import queue
 import numpy as np
 import csv
 import time
 
-
-'''
-
-class FrameGrabber:
-    # ... [rest of your existing code] ...
-
-    def __init__(self, rtsp_url, frame_queue):
-        # ... [rest of your existing __init__ code] ...
-        self.monitoring_thread_active = False
-
-    def start(self):
-        # ... [your existing start method code] ...
-        self.monitoring_thread_active = True
-        self.check_and_restart_thread = threading.Thread(target=self.monitor_pipeline)
-        self.check_and_restart_thread.start()
-
-    def stop(self):
-        # ... [your existing stop method code, minus the join call] ...
-        self.monitoring_thread_active = False
-        # Note: Do not join the thread here if this method can be called from the monitoring thread
-
-    def monitor_pipeline(self):
-        while self.monitoring_thread_active:
-            # ... [rest of your monitor_pipeline code] ...
-            time.sleep(1)  # Check every 1 second
-
-# In your main function or where you stop the FrameGrabber instances:
-for viewer in frame_grabbers:
-    viewer.stop()
-
-# After stopping all viewers, join their threads:
-for viewer in frame_grabbers:
-    if viewer.check_and_restart_thread:
-        viewer.check_and_restart_thread.join()
-
-# ... [rest of your code] ...
-
-
-'''
-
-
 from lib.rtsp_cam_grab import RTSPCamGrabber
-
-
-gi.require_version('Gst', '1.0')
-from gi.repository import Gst
-
-Gst.init(None)
-
-last_frame_time = 0
-CHECK_INTERVAL = 2  # Check every few seconds
-FRAME_RECEIVE_TIMEOUT = 5  # Restart pipeline if no frames received for 5 seconds
 
 
 def write_to_csv(filename = './log/events_receiver.csv', frame_id=0, event='unknown', timestamp=0):
