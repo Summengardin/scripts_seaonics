@@ -39,15 +39,84 @@ def dummy_frame(tag = ""):
         return frame
     
 
+
+def create_combined_frame(frame1, frame2, rgb_color, outline_color=(0, 255, 0), outline_thickness=2):
+    """
+    Create a temporary frame that has the height of frame1 and the width of frame2.
+    The empty space above frame2 is filled with the specified RGB color. An outline is added around frame2.
+
+    :param frame1: Larger frame (numpy array).
+    :param frame2: Smaller frame (numpy array).
+    :param rgb_color: Tuple of RGB color (e.g., (255, 0, 0) for red).
+    :param outline_color: Tuple of RGB color for the outline.
+    :param outline_thickness: Thickness of the outline.
+    :return: Combined frame.
+    """
+    # Resize frame2 if it's larger than frame1
+    if frame2.shape[0] > frame1.shape[0] or frame2.shape[1] > frame1.shape[1]:
+        scale_ratio = min(frame1.shape[0] / frame2.shape[0], frame1.shape[1] / frame2.shape[1])
+        frame2 = cv2.resize(frame2, None, fx=scale_ratio, fy=scale_ratio, interpolation=cv2.INTER_AREA)
+
+    # Create a new temporary frame with the height of frame1 and the width of frame2
+    temp_frame = np.zeros((frame1.shape[0], frame2.shape[1], 3), dtype=np.uint8)
+
+    # Fill the temporary frame with the specified RGB color
+    temp_frame[:] = rgb_color
+
+    # Overlay frame2 onto the bottom part of the temporary frame
+    y_offset = frame1.shape[0] - frame2.shape[0]
+    temp_frame[y_offset:y_offset+frame2.shape[0], :frame2.shape[1]] = frame2
+
+    # Draw an outline around frame2
+    cv2.rectangle(temp_frame, (0, y_offset), (frame2.shape[1], y_offset + frame2.shape[0]), outline_color, outline_thickness)
+
+    return temp_frame
     
 def display_rtsp_frames_same_window(cam_grabbers, enable_logging=False):
-    cv2.namedWindow("Combined Frames", cv2.WINDOW_KEEPRATIO | cv2.WINDOW_NORMAL)
-    cv2.setWindowProperty("Combined Frames", cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
+    cv2.namedWindow("Camera view", cv2.WINDOW_KEEPRATIO | cv2.WINDOW_NORMAL)
+    cv2.setWindowProperty("Camera view", cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
 
     primary_index = 0  # Index to determine which frame is primary
 
-
     while True:
+        frames_to_display = []
+
+        for i, grabber in enumerate(cam_grabbers):
+            frame = grabber.get_frame()
+            if frame is not None:
+                frames_to_display.append(frame)
+            else:
+                frame = dummy_frame()
+                cv2.putText(frame, str(i), (50, 200), cv2.FONT_HERSHEY_DUPLEX, 5, (240, 243, 245), 2)
+                frames_to_display.append(frame)
+
+        if frames_to_display:
+            primary_frame = frames_to_display[primary_index]
+            secondary_frame = frames_to_display[1 - primary_index]
+
+            # Resize the secondary frame to be smaller
+            small_frame = cv2.resize(secondary_frame, None, fx=0.25, fy=0.25, interpolation=cv2.INTER_AREA)
+
+            combined_frame = create_combined_frame(primary_frame, small_frame, (50,50,50))
+
+            output_frame = np.hstack([primary_frame, combined_frame])
+
+
+            cv2.putText(output_frame, "Press 'q' to exit", (20, primary_frame.shape[0] - 20), cv2.FONT_HERSHEY_DUPLEX, 0.4, (240, 243, 245), 1)
+           
+            cv2.imshow("Camera view", output_frame)
+
+
+        # Check for spacebar press or window close
+        key = cv2.waitKey(1) & 0xFF
+        if key == ord(' '):  # Spacebar pressed
+            primary_index = 1 - primary_index  # Swap the primary frame
+        elif key == ord('q') or key == 27 or cv2.getWindowProperty('Camera view', cv2.WND_PROP_VISIBLE) < 1:
+            # 'q', ESC or window closed
+            break
+        continue
+        
+    #while True:
         frames_to_display = []
 
         for i, grabber in enumerate(cam_grabbers):

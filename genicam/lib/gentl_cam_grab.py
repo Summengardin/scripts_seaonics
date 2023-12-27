@@ -37,7 +37,7 @@ IMAGE_FORMAT = "BayerBG8"
 #IMAGE_FORMAT = "YUV422_YUYV_Packed"
 
 CAM_GRABBER_PROCESS_SILENT = False
-NO_CAM_COUNTER_MAX = 20
+NO_CAM_COUNTER_MAX = 5
 FPS_PRINT_INTERVAL = 1 # [s]
 
 
@@ -159,6 +159,7 @@ class CamGrabberProcess():
                 if no_cam_counter > NO_CAM_COUNTER_MAX:
                     no_cam_counter = 0
                     print(f"NO_CAM_COUNTER exceeded {NO_CAM_COUNTER_MAX}")
+                    self.__reset_harvester()
                     #self.is_running.value = False
                     #continue
                     
@@ -225,14 +226,17 @@ class CamGrabberProcess():
             print("Found following devices:")
             for device in self.h.device_info_list:
                 properties = device.property_dict
-                ic(properties)
                 print(f"S/N: {properties['serial_number']} | Model: {properties['model']}")
-        
-            print(f"\nConnecting to camera: {serial_number}")
+
+            #print(f"\nConnecting to camera: {serial_number}")
+            if len(self.h.device_info_list) > 1:
+                print("Found multiple cameras, using first one")
+            print(f"Connecting to camera: {self.h.device_info_list[0].property_dict['serial_number']}")
             
             try:
                 print("Creating camera object")
-                camera = self.h.create({"serial_number":serial_number}) # type:ignore
+                #camera = self.h.create({"serial_number":serial_number}) # type:ignore
+                camera = self.h.create()
                 print("Camera object created")
             except Exception as e:
                 print(f"Exception when creating camera: {e}")

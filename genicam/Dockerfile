@@ -12,17 +12,16 @@ FROM nvidia/cuda:12.3.1-base-ubuntu20.04
 # Avoid interactive dialogue during build
 ARG DEBIAN_FRONTEND=noninteractive
 
+# Make virtual environment
+RUN apt-get update && apt-get install -y \
+    software-properties-common && \
+    add-apt-repository -y ppa:deadsnakes && \
+    apt-get update && apt-get install -y \
+    python3.10-venv python3.10 python3.10-distutils python3.10-dev
 
-# Install python3.10
-RUN apt-get update && apt-get install -y software-properties-common && \
-    add-apt-repository ppa:deadsnakes/ppa && \
-    apt-get update && \
-    apt-get install -y python3.10 python3.10-distutils python3.10-dev && \
-    update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.10 1
+RUN python3.10 -m venv /venv
+ENV PATH=/venv/bin:$PATH
 
-# Install pip for python3.10
-RUN apt-get install -y curl && \
-    curl -sS https://bootstrap.pypa.io/get-pip.py | python3.10
 
 # Update and install system packages
 RUN apt-get update && apt-get install -y \
@@ -50,19 +49,69 @@ RUN apt-get update && apt-get install -y \
 
 
 
-# Install Python dependencies (if any)
+
+RUN apt-get update && \
+    apt-get install -y \
+    kmod \
+    wget    
+
+
+
+
+# Install pip for python3.10
+RUN apt-get install -y curl && \
+    curl -sS https://bootstrap.pypa.io/get-pip.py | python3.10
+    #pip3 install --upgrade pip
+
+
+# Install Python dependencies
 COPY requirements.txt /tmp/
-RUN pip install setuptools wheel
-RUN pip install --no-cache-dir -r /tmp/requirements.txt
+RUN pip3 install setuptools wheel
+RUN pip3 install --no-cache-dir -r /tmp/requirements.txt
+RUN pip3 install --upgrade six
 
 # Set the working directory in the container
+
+
+WORKDIR /pyln
+# Install pylon SDK
+RUN wget https://www2.baslerweb.com/media/downloads/software/pylon_software/pylon_7_4_0_14900_linux_aarch64_setup.tar.gz && \
+    tar -xzf ./pylon_7_4_0_14900_linux_aarch64_setup.tar.gz && \
+    mkdir -p /opt/pylon && \
+    tar -C /opt/pylon -xzf ./pylon-7.4.0.14900_linux-aarch64.tar.gz && \
+    chmod 755 /opt/pylon
+
+
+# Install pylon gst-plugin dependencies
+RUN apt-get update && \
+    apt-get install -y git gstreamer1.0-python3-plugin-loader ninja-build cmake && \
+    pip3 install meson==0.61
+
+
+# Clone and build pylon gst-plugin
+RUN export PYLON_ROOT=/opt/pylon && \
+    git clone https://github.com/basler/gst-plugin-pylon.git && \
+    cd gst-plugin-pylon && \
+    meson setup builddir --prefix /usr/ && \
+    ninja -C builddir && \
+    ninja -C builddir install && \
+    cd ../
+
+RUN rm -rf /pyln      
+
+
+
+#COPY /data/producer /app/producer
+#COPY ../../../../../opt/pylon/lib /opt/pylon/lib/
+
+
 WORKDIR /app
-
-COPY /data/producer /app/producer
-
 # Copy the current directory contents into the container at /app
 COPY . /app
 
-RUN gst-inspect-1.0 --version
+
+RUN rm ~/.cache/gstreamer-1.0/registry*.bin; exit 0
 # Set the default command for the container
-CMD ["python3", "monitor_server.py", "-c", "producer/ProducerGEV.cti"]
+#CMD ["python3", "monitor_server.py", "-c", "producer/ProducerGEV.cti"]
+#
+#CMD ["python3", "server_simple.py"] 

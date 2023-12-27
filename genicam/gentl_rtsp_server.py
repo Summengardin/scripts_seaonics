@@ -71,7 +71,7 @@ def write_to_csv(filename = '/home/seaonics/Desktop/scripts_seaonics/genicam/log
 
 
 class RTSPServer:
-    def __init__(self, ip='169.254.54.69', port="8554", mount_point="/test", no_cam = False, test_src = False, W=W, H=H, FPS=FPS, enable_logging=False, cti_file=""):
+    def __init__(self, ip=None, port="8554", mount_point="/test", no_cam = False, test_src = False, W=W, H=H, FPS=FPS, enable_logging=False, cti_file=""):
         self.ip = ip
         self.port = port
         self.mount_point = mount_point
@@ -162,7 +162,8 @@ class RTSPServer:
     def setup_factory(self):
         print(f"Setting up factory")
         self.server = GstRtspServer.RTSPServer.new()
-        self.server.set_address(self.ip)
+        if self.ip is not None:
+            self.server.set_address(self.ip)
         self.server.set_service(self.port)
         
         
@@ -322,14 +323,11 @@ if __name__ == "__main__":
     cti_file = args.cti
     
     
-    number_of_servers = 1
-    
-
-    
+    ip = None #'10.1.5.66'
+      
     # while True:
-    print(f"Starting new RTSP server on port {port}, server number {number_of_servers}")
-    number_of_servers += 1
-    server = RTSPServer(no_cam=False, test_src=False, enable_logging=False, port=port, cti_file=cti_file)
+    print(f"Starting new RTSP server on port {port}")
+    server = RTSPServer(ip=ip, no_cam=False, test_src=False, enable_logging=False, port=port, cti_file=cti_file)
     
     
     def sig_handler(signum, frame):
