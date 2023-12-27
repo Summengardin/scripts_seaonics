@@ -181,7 +181,7 @@ if __name__ == "__main__":
     if len(sys.argv) < 2:
         print("Usage: python3 stream_viewer.py <RTSP URL 1> <RTSP URL 2> ...")
         #rtsp_urls = ["rtsp://169.254.54.69:8554/test", "rtsp://127.0.0.1:8554/test"]
-        rtsp_urls = ["rtsp://169.254.54.69:8554/test", "rtsp://169.254.13.69:8554/shore"]
+        rtsp_urls = ["rtsp://10.0.0.34:8554/test", "rtsp://10.0.0.125:8554/test"]
     else:
         rtsp_urls = sys.argv[1:]
         
