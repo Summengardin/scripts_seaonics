@@ -1,13 +1,4 @@
-# docker run -it --rm -p 8554:8554 rtspserver:latest
-# docker run -it --rm --net=host --runtime nvidia rtspserver:latest
-
-
-
-# Use an NVIDIA CUDA base image
 FROM nvidia/cuda:12.3.1-base-ubuntu20.04
-
-# Set a label for maintaining metadata
-#LABEL maintainer="your-email@example.com"
 
 # Avoid interactive dialogue during build
 ARG DEBIAN_FRONTEND=noninteractive
@@ -48,14 +39,10 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 
-
-
 RUN apt-get update && \
     apt-get install -y \
     kmod \
     wget    
-
-
 
 
 # Install pip for python3.10
@@ -69,8 +56,6 @@ COPY requirements.txt /tmp/
 RUN pip3 install setuptools wheel
 RUN pip3 install --no-cache-dir -r /tmp/requirements.txt
 RUN pip3 install --upgrade six
-
-# Set the working directory in the container
 
 
 WORKDIR /pyln
@@ -88,7 +73,7 @@ RUN apt-get update && \
     pip3 install meson==0.61
 
 
-# Clone and build pylon gst-plugin
+# Build pylon gst-plugin
 RUN export PYLON_ROOT=/opt/pylon && \
     git clone https://github.com/basler/gst-plugin-pylon.git && \
     cd gst-plugin-pylon && \
@@ -100,11 +85,6 @@ RUN export PYLON_ROOT=/opt/pylon && \
 RUN rm -rf /pyln      
 
 
-
-#COPY /data/producer /app/producer
-#COPY ../../../../../opt/pylon/lib /opt/pylon/lib/
-
-
 WORKDIR /app
 # Copy the current directory contents into the container at /app
 COPY . /app
@@ -112,6 +92,6 @@ COPY . /app
 
 RUN rm ~/.cache/gstreamer-1.0/registry*.bin; exit 0
 # Set the default command for the container
-#CMD ["python3", "monitor_server.py", "-c", "producer/ProducerGEV.cti"]
+CMD ["python3", "monitor_server.py"]
 #
 #CMD ["python3", "server_simple.py"] 
