@@ -31,14 +31,14 @@ from harvesters.core import Harvester, ImageAcquirer, Component
 from genicam.gentl import TimeoutException, IoException
 
 PRODUCER_PATH = "/opt/pylon/lib/gentlproducer/gtl/ProducerGEV.cti"
-SERIAL_NUMBER_ACE2 = "24595666"
+SERIAL_NUMBER_ACE2 = "NOT USED"
 H, W, D = 720, 1280, 3
 IMAGE_FORMAT = "BayerBG8"
 #IMAGE_FORMAT = "YUV422_YUYV_Packed"
 
 CAM_GRABBER_PROCESS_SILENT = False
 NO_CAM_COUNTER_MAX = 5
-FPS_PRINT_INTERVAL = 1 # [s]
+FPS_PRINT_INTERVAL = 10 # seconds
 
 
 class CamGrabber():

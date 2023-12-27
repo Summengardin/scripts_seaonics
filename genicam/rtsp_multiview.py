@@ -97,9 +97,9 @@ def display_rtsp_frames_same_window(cam_grabbers, enable_logging=False):
             # Resize the secondary frame to be smaller
             small_frame = cv2.resize(secondary_frame, None, fx=0.25, fy=0.25, interpolation=cv2.INTER_AREA)
 
-            combined_frame = create_combined_frame(primary_frame, small_frame, (50,50,50))
+            small_frame = create_combined_frame(primary_frame, small_frame, (0,0,0))
 
-            output_frame = np.hstack([primary_frame, combined_frame])
+            output_frame = np.hstack([primary_frame, small_frame])
 
 
             cv2.putText(output_frame, "Press 'q' to exit", (20, primary_frame.shape[0] - 20), cv2.FONT_HERSHEY_DUPLEX, 0.4, (240, 243, 245), 1)
