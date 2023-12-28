@@ -91,7 +91,9 @@ COPY . /app
 
 
 RUN rm ~/.cache/gstreamer-1.0/registry*.bin; exit 0
+
+
+
 # Set the default command for the container
 CMD ["python3", "monitor_server.py"]
-#
-#CMD ["python3", "server_simple.py"] 
+
