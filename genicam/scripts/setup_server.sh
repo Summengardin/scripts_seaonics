@@ -18,13 +18,9 @@ if systemctl is-active --quiet docker; then
 else
     sudo systemctl restart docker
     if !(systemctl is-active --quiet docker;) then
-        echo "Failed. Could not restart docker"
+        echo "Failed. Could not start docker"
         exit 1
     else
         echo "Docker OK"
     fi   
 fi
-
-echo
-echo Installing basler
-bash ./scripts/basler_setup.sh
