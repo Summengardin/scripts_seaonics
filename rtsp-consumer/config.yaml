@@ -1,0 +1,9 @@
+ip:
+  windmill: !!str 10.1.2.82
+  ship: !!str 10.1.2.81
+port:
+  windmill: !!str 8554
+  ship: !!str 8554
+mount:
+  windmill: !!str cam
+  ship: !!str cam

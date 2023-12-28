@@ -11,22 +11,6 @@
 # gst-launch-1.0 rtspsrc location=rtsp://127.0.0.1:8554/test latency=0 ! rtph264depay ! h264parse ! nvv4l2decoder enable-max-performance=1 ! nvvidconv ! autovideosink sync=0
 
 
-'''
-NOTE-TO-SELF:
-
-1.des.23
-(Nesten) alt funker
-    - Stream
-    - Display (kan skifte mellom kameraer)
-    - Kamera kan plugges ut
-    - Server kan stoppes og startes igjen, clinten reconnecter
-Utenom det
-    - Om klienten kobler fra, så må serveren restartes for at klienten skal kunne koble til igjen
-
-
-'''
-
-
 from icecream import ic
 import signal
 
@@ -35,7 +19,6 @@ import gi
 import numpy as np
 import lib.gentl_cam_grab as camgrab
 import cv2
-import csv
 import argparse
 import os
 import threading
@@ -61,15 +44,6 @@ argparser = argparse.ArgumentParser(description='RTSP server')
 argparser.add_argument('--port', type=str, default="8554", help='Port to run RTSP server on')
 argparser.add_argument('-c', '--cti', type=str, default="", help='Relative path to .cti file')
 
-
-def write_to_csv(filename = '/home/seaonics/Desktop/scripts_seaonics/genicam/log/events_sender.csv', frame_id=0, event='unknown', timestamp=0):
-    #print(f"Writing to csv: {filename} \t {frame_id}, {event}, {timestamp}")
-    with open(filename, 'a', newline='') as file:
-        writer = csv.writer(file)
-        writer.writerow([frame_id, event, timestamp])
-
-
-
 class RTSPServer:
     def __init__(self, ip=None, port="8554", mount_point="/test", no_cam = False, test_src = False, W=W, H=H, FPS=FPS, enable_logging=False, cti_file=""):
         self.ip = ip
@@ -89,62 +63,16 @@ class RTSPServer:
 
         if not no_cam:
             self.setup_cam_grabber(self.cti_file)
-            
-            
-        test_str = ("videotestsrc is-live=true ! nvvidconv ! nvv4l2h264enc ! rtph264pay config-interval=1 pt=96 name=pay0")
-        
-        launch_str = (
-            "appsrc name=source emit-signals=True is-live=True block=True format=GST_FORMAT_TIME "
-            "caps=video/x-raw,format=BayerBG8,width=640,height=480,framerate=30/1 ! "
-            "queue leaky=upstream max-size-buffers=6 max-size-time=0 max-size-bytes=0 ! "
-            "videoconvert ! nvvidconv ! nvv4l2h264enc ! rtph264pay pt=96 name=pay0"
+                 
+        self.launch_str = (f"appsrc name=source is-live=true block=true format=GST_FORMAT_TIME "
+                            f"caps=video/x-raw,width={W},height={H},framerate={FPS}/1,format=RGB "
+                            "! videoconvert "
+                            "! nvvidconv "
+                            "! video/x-raw(memory:NVMM), format=(string)I420"
+                            "! nvv4l2h264enc" #profile=0-Baseline preset-level=4-Ultrafast
+                            "! rtph264pay config-interval=0 pt=96 name=pay0"
+                            )
 
-            )
-        
-        launch_str_1 = ("appsrc name=source is-live=true block=true format=GST_FORMAT_TIME ! video/x-raw, width=1280 , height=720, format=RGB framerate=60/1 ! nvvidconv ! nvv4l2h264enc enable-full-frame=true ! rtph264pay pt=96 name=pay0")
-        
-        launch_str_2_WORKING = (
-            "appsrc name=source is-live=true block=true format=GST_FORMAT_TIME " 
-            "caps=video/x-raw,format=BGR,width=640,height=480,framerate=30/1 "
-            "! videoconvert "
-            "! video/x-raw,format=I420 " 
-            "! x264enc speed-preset=ultrafast tune=zerolatency ! rtph264pay config-interval=1 name=pay0 pt=96"
-        )
-        
-        launch_str_3 = ( "appsrc name=source is-live=true block=true format=GST_FORMAT_TIME " 
-            "caps=video/x-raw,format=BGR,width=640,height=480,framerate=30/1 "
-            "! nvvidconv "
-            "! nvh264enc " 
-            "! rtph264pay pt=96 name=pay0"
-        )
-                
-        
-        launch_str_4_WORKING = (f"appsrc name=source is-live=true block=true format=GST_FORMAT_TIME "
-    f"caps=video/x-raw,width={W},height={H},framerate={FPS}/1,format=RGB "
-    "! videoconvert "
-    "! nvvidconv "
-    "! video/x-raw(memory:NVMM), format=(string)I420"
-    "! nvv4l2h264enc" #profile=0-Baseline preset-level=4-Ultrafast
-    "! rtph264pay config-interval=0 pt=96 name=pay0"
-    )
-
-        launch_str_5_TESTING = (f"appsrc name=source is-live=true block=true format=GST_FORMAT_TIME "
-    f"caps=video/x-raw,width={W},height={H},framerate={FPS}/1,format=RGB "
-    "! videoconvert "
-    "! nvvidconv "
-    "! video/x-raw(memory:NVMM), format=(string)I420"
-    "! nvv4l2h264enc" #profile=0-Baseline preset-level=4-Ultrafast
-    "! rtph264pay config-interval=0 pt=96 name=pay0"
-    "! queue")
-
-        
-        
-        
-        if test_src:
-            self.launch_str = test_str
-        else:
-            self.launch_str = launch_str_4_WORKING
-            #self.launch_str = launch_str_5_TESTING
         self.setup_factory()
 
         self.loop = GLib.MainLoop()
@@ -181,7 +109,7 @@ class RTSPServer:
         
         self.factory.connect('media-configure', self.on_media_configure)
         self.server.connect('client-connected', self.on_client_connected)
-        ic("Factory setup complete")
+        print("Factory setup complete")
 
         
         
@@ -190,13 +118,13 @@ class RTSPServer:
 
     
     def on_client_connected(self, server, client):
-        ic("Client connected: ", client.get_connection().get_ip())
+        print("Client connected: ", client.get_connection().get_ip())
         self.client = client
         self.client.connect('closed', self.on_client_disconnected)
         
         
     def on_client_disconnected(self, user_data):
-        ic("Client disconnected: ", self.client.get_connection().get_ip())
+        print("Client disconnected: ", self.client.get_connection().get_ip())
         self.stop()
         raise Exception("Client disconnected")
         
@@ -226,12 +154,7 @@ class RTSPServer:
 
         if not self.no_cam:
             try:
-                if self.enable_logging: 
-                    frame, timestamp = self.cam_grabber.get_frame_with_timestamp()   
-                    self.frame_counter += 1
-                    write_to_csv(frame_id=self.frame_counter, event="frame_grabbed", timestamp=timestamp)   
-                else: 
-                    frame = self.cam_grabber.get_frame()
+                frame = self.cam_grabber.get_frame()
             except Exception as e:
                 print(f"Error getting frame: {e}")
                 frame, timestamp = None, 0       
@@ -241,8 +164,8 @@ class RTSPServer:
             frame = None
         
         if frame is None:
-            msg = "Test frame" if self.no_cam else "No camera connected"
-            frame = self.create_dummy_frame()
+            msg = "Dummy-frame" if self.no_cam else "No camera connected"
+            frame = self.create_dummy_frame(msg)
         else:
             self.fps_counter, self.last_fps_print_time = self.__print_fps(self.fps_counter, self.last_fps_print_time)
         
@@ -260,13 +183,10 @@ class RTSPServer:
         ret = src.emit('push-buffer', gst_buffer)
         if ret != Gst.FlowReturn.OK:
             print("Error pushing buffer")
-            
-        if self.enable_logging:    
-            write_to_csv(frame_id=self.frame_counter, event="frame_pushed", timestamp=time.time())
-            
+              
         return True  # Return True to keep the timeout active
     
-    def create_dummy_frame(self, message="Dummy frame"):
+    def create_dummy_frame(self, message="Camera not connected"):
         frame = np.full((self.H, self.W, 3), (25, 83, 95), dtype=np.uint8)
 
         font = cv2.FONT_HERSHEY_SIMPLEX
@@ -278,7 +198,7 @@ class RTSPServer:
         textX = (frame.shape[1] - textsize[0]) / 2
         textY = (frame.shape[0] + textsize[1]) / 2
         
-        cv2.putText(frame, f"RTSPServer says:", (int(textX), int(textY-50) ), font, font_scale*0.5, (240, 243, 245), font_thickness//2)
+        cv2.putText(frame, f"RTSP Server says:", (int(textX), int(textY-50) ), font, font_scale*0.5, (240, 243, 245), font_thickness//2)
         cv2.putText(frame, text, (int(textX), int(textY) ), font, font_scale, (240, 243, 245), font_thickness)
         
         return frame
@@ -339,7 +259,6 @@ if __name__ == "__main__":
         exit(0)
     signal.signal(signal.SIGINT | signal.SIGTERM, sig_handler)
     try:
-        ic()
         server.start()
     except Exception as e:
         print(f"[Error in server main]: {e}")

@@ -27,9 +27,10 @@ bash /home/seaonics/dev/rtsp-server-docker/start_server.sh
 
 
 ## 4. Set IP settings of the unit according to documentation
-Realtek (PoE) - for camera connection:
-169.254.54.20 / 255.255.255.0
-Microchip - for client connection:
-10.1.2.??? / 255.255.255.0
+Realtek (PoE) interface - for camera connection:
+- 169.254.54.20 / 255.255.255.0
 
+Microchip interface - for switch connection:
+- Windmill: 10.1.2.81 / 255.255.255.0
+- Ship: 10.1.2.82 / 255.255.255.0
 
