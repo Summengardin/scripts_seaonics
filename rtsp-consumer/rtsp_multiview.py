@@ -107,7 +107,7 @@ if __name__ == "__main__":
         print("Using 'rtsp://10.1.2.81:8554/cam' and 'rtsp://10.1.2.82:8554/cam'")
         
         rtsp_urls = [f"rtsp://{IP_WINDMILL}:8554/cam", f"rtsp://{IP_SHIP}:8554/cam"]
-        rtsp_urls = ["rtsp://10.0.0.34:8554/cam", "rtsp://10.0.0.39:8554/cam"]
+        #rtsp_urls = ["rtsp://10.0.0.34:8554/cam", "rtsp://10.0.0.39:8554/cam"]
     else:
         rtsp_urls = sys.argv[1:]
         
