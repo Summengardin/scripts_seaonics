@@ -1,17 +1,5 @@
 #!./venv/bin/python3
 
-# TO DISPLAY: gst-launch-1.0 rtspsrc location=rtsp://127.0.0.1:8554/test ! rtph264depay  ! autovideosink
-
-#gst-launch-1.0 rtspsrc location=rtsp://127.0.0.1:8554/test ! rtph264depay ! h264parse ! nvv4l2decoder enable-max-performance=1 ! fakevideosink sync=0
-
-# gst-launch-1.0 rtspsrc location=rtsp://127.0.0.1:8554/test ! fakesink dump=1
-
-# DISPLAY THAT WORKS:
-# launch_str_4
-# gst-launch-1.0 rtspsrc location=rtsp://127.0.0.1:8554/test latency=0 ! rtph264depay ! h264parse ! nvv4l2decoder enable-max-performance=1 ! nvvidconv ! autovideosink sync=0
-
-
-from icecream import ic
 import signal
 
 import time
@@ -20,22 +8,21 @@ import numpy as np
 import lib.gentl_cam_grab as camgrab
 import cv2
 import argparse
-import os
-import threading
+
 
 gi.require_version('Gst', '1.0')
 gi.require_version('GstRtspServer', '1.0')
 from gi.repository import Gst, GLib, GstRtspServer, GstRtsp
 
 
-Gst.debug_set_active(True)
-Gst.debug_set_default_threshold(3)
+Gst.debug_set_active(False)
+Gst.debug_set_default_threshold(0)
 
 Gst.init(None)
 
-W = 640
-H = 512
-FPS = 20
+W = 1280
+H = 1024
+FPS = 200
 FPS_PRINT_INTERVAL = 1
 
 
@@ -246,7 +233,7 @@ if __name__ == "__main__":
       
     # while True:
     print(f"Starting new RTSP server on port {port}")
-    server = RTSPServer(ip=ip, no_cam=False, test_src=False, enable_logging=False, port=port, cti_file=cti_file)
+    server = RTSPServer(W=W, H=H, ip=ip, no_cam=False, test_src=False, enable_logging=False, port=port, cti_file=cti_file)
     
     
     def sig_handler(signum, frame):

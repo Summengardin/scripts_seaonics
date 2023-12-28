@@ -1,21 +1,3 @@
-"""
-Et forsøk på å la GenTL håndtere pylon-kameraer.
-G-streamer får bare ansvar for å enkode å sende over rtsp
-
-13.10.23
-Multiprocessing kukker til alt.
-
-20.10.23
-Ting virker. Latency ned mot 60ms på lokal kjøring
-Neste nå: Restart ved disconnect
-            Stream over rtsp/mjpeg med gstreamer
-
-27.10.23
-Fikset restart ved disconnect
-    Kom en exception fra harvesters.update()
-
-"""
-from icecream import ic
 
 import os
 import time

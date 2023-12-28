@@ -6,8 +6,10 @@ import time
 from lib.rtsp_cam_grab import RTSPCamGrabber
 
 
-W = 640
-H = 512
+W = 1280
+H = 1024
+IP_WINDMILL = "10.1.2.82"
+IP_SHIP = "10.1.2.81"
 
 
 def dummy_frame(tag = "", W=1280, H=1024): 
@@ -34,7 +36,6 @@ def dummy_frame(tag = "", W=1280, H=1024):
         cv2.putText(frame, f"From {tag}", (int(textX), int(textY+50) ), font, font_scale*0.5, (240, 243, 245), font_thickness//2)
         return frame
     
-
 
 def create_small_frame(frame1, frame2, rgb_color, outline_color=(0, 255, 0), outline_thickness=2):
     # Resize frame2 if it's larger than frame1
@@ -81,9 +82,7 @@ def display_rtsp_frames_same_window(cam_grabbers, enable_logging=False):
 
             # Resize the secondary frame to be smaller
             small_frame = cv2.resize(secondary_frame, None, fx=0.25, fy=0.25, interpolation=cv2.INTER_AREA)
-
             small_frame = create_small_frame(primary_frame, small_frame, (0,0,0))
-
             output_frame = np.hstack([primary_frame, small_frame])
 
 
@@ -107,17 +106,16 @@ if __name__ == "__main__":
         #print("Usage: python3 stream_viewer.py <RTSP URL 1> <RTSP URL 2> ...")
         print("Using 'rtsp://10.1.2.81:8554/cam' and 'rtsp://10.1.2.82:8554/cam'")
         
-        rtsp_urls = ["rtsp://10.1.2.81:8554/cam", "rtsp://10.1.2.82:8554/cam"]
+        rtsp_urls = [f"rtsp://{IP_WINDMILL}:8554/cam", f"rtsp://{IP_SHIP}:8554/cam"]
         rtsp_urls = ["rtsp://10.0.0.34:8554/cam", "rtsp://10.0.0.39:8554/cam"]
     else:
         rtsp_urls = sys.argv[1:]
         
-        
-    enable_logging = False   
+         
     rtsp_grabbers = [RTSPCamGrabber(rtsp_url=url, W=W, H=H) for url in rtsp_urls]
     
     try:
-        display_rtsp_frames_same_window(rtsp_grabbers, enable_logging=enable_logging)
+        display_rtsp_frames_same_window(rtsp_grabbers)
     except Exception as e:
         print(f"Error displaying frames: {e}")
         
