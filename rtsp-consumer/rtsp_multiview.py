@@ -113,8 +113,8 @@ if __name__ == "__main__":
         rtsp_urls = sys.argv[1:]
         
         
-    enable_logging = False    
-    rtsp_grabbers = [RTSPCamGrabber(rtsp_url=url, W=1280, H=1024) for url in rtsp_urls]
+    enable_logging = False   
+    rtsp_grabbers = [RTSPCamGrabber(rtsp_url=url, W=W, H=H) for url in rtsp_urls]
     
     try:
         display_rtsp_frames_same_window(rtsp_grabbers, enable_logging=enable_logging)
