@@ -3,4 +3,4 @@
 #bash /home/seaonics/Desktop/scripts_seaonics/genicam/scripts/setmaxMTU.sh eth0 #POE port
 #bash /home/seaonics/Desktop/scripts_seaonics/genicam/scripts/setmaxMTU.sh docker0
 
-gnome-terminal -- docker run -it --rm --net=host --runtime nvidia --gpus all -v /tmp/argus_socket:/tmp/argus_socket rtspserver
+gnome-terminal -- docker run -it --rm --net=host --runtime nvidia --gpus all -v /tmp/argus_socket:/tmp/argus_socket -v ./config.yaml:/config/config.yaml rtspserver

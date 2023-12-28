@@ -6,14 +6,15 @@ import time
 from lib.rtsp_cam_grab import RTSPCamGrabber
 
 
+W = 640
+H = 512
 
 
-
-def dummy_frame(tag = ""): 
+def dummy_frame(tag = "", W=1280, H=1024): 
         # Generate a dummy frame
 
         # Background
-        frame = np.full((720, 1280, 3), (95, 83, 25), dtype=np.uint8)
+        frame = np.full((H, W, 3), (95, 83, 25), dtype=np.uint8)
         
         # setup text
         font = cv2.FONT_HERSHEY_SIMPLEX
@@ -70,7 +71,7 @@ def display_rtsp_frames_same_window(cam_grabbers, enable_logging=False):
             if frame is not None:
                 frames_to_display.append(frame)
             else:
-                frame = dummy_frame()
+                frame = dummy_frame(grabber.rtsp_url, W=grabber.W, H=grabber.H)
                 cv2.putText(frame, str(i), (50, 200), cv2.FONT_HERSHEY_DUPLEX, 5, (240, 243, 245), 2)
                 frames_to_display.append(frame)
 
@@ -101,22 +102,6 @@ def display_rtsp_frames_same_window(cam_grabbers, enable_logging=False):
         continue
         
 
-
-def main(rtsp_urls, enable_logging=False):
-    rtsp_grabbers = [RTSPCamGrabber(rtsp_url=url, W=1280, H=1024) for url in rtsp_urls]
-    
-    try:
-        display_rtsp_frames_same_window(rtsp_grabbers, enable_logging=enable_logging)
-    except Exception as e:
-        print(f"Error displaying frames: {e}")
-        
-    for grabber in rtsp_grabbers:
-        grabber.stop()
-    
-    
-    cv2.destroyAllWindows()
-
-
 if __name__ == "__main__":
     if len(sys.argv) < 2:
         #print("Usage: python3 stream_viewer.py <RTSP URL 1> <RTSP URL 2> ...")
@@ -129,4 +114,15 @@ if __name__ == "__main__":
         
         
     enable_logging = False    
-    main(rtsp_urls, enable_logging)
+    rtsp_grabbers = [RTSPCamGrabber(rtsp_url=url, W=1280, H=1024) for url in rtsp_urls]
+    
+    try:
+        display_rtsp_frames_same_window(rtsp_grabbers, enable_logging=enable_logging)
+    except Exception as e:
+        print(f"Error displaying frames: {e}")
+        
+    for grabber in rtsp_grabbers:
+        grabber.stop()
+    
+    
+    cv2.destroyAllWindows()

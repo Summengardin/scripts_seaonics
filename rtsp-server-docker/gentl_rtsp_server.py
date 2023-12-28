@@ -33,11 +33,10 @@ Gst.debug_set_default_threshold(3)
 
 Gst.init(None)
 
-W = 1280
-H = 1024
-FPS = 100
+W = 640
+H = 512
+FPS = 20
 FPS_PRINT_INTERVAL = 1
-GUID_FRAME_ID = 0
 
 
 argparser = argparse.ArgumentParser(description='RTSP server')
@@ -45,7 +44,7 @@ argparser.add_argument('--port', type=str, default="8554", help='Port to run RTS
 argparser.add_argument('-c', '--cti', type=str, default="", help='Relative path to .cti file')
 
 class RTSPServer:
-    def __init__(self, ip=None, port="8554", mount_point="/test", no_cam = False, test_src = False, W=W, H=H, FPS=FPS, enable_logging=False, cti_file=""):
+    def __init__(self, ip=None, port="8554", mount_point="/cam", no_cam = False, test_src = False, W=W, H=H, FPS=FPS, enable_logging=False, cti_file=""):
         self.ip = ip
         self.port = port
         self.mount_point = mount_point
