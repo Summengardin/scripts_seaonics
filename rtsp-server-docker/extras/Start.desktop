@@ -3,6 +3,6 @@
 Name=Start camera
 Comment= Run docker container for streaming camera
 Exec=/home/seaonics/Desktop/scripts_seaonics/rtsp-server-docker/start_server.sh
-Icon=/home/seaonics/Desktop/scripts_seaonics/rtsp-server-docker/icon-camera.png
+Icon=/home/seaonics/Desktop/scripts_seaonics/rtsp-server-docker/extras/icon-camera.png
 Terminal=true
 Type=Application
