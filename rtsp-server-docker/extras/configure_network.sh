@@ -1,12 +1,12 @@
 #!/bin/bash
 
-# Ethernet interface of camera connection (PoE port)
-eth_camera_mac="48:b0:2d:d9:38:64"
+# Ethernet interface of camera connection (PoE port) - Realtek Semiconductor
+eth_camera_mac="48:b0:2d:d8:cd:0a"
 eth_camera_ip="169.254.54.20/24"
 
-# Ethernet interface of camera connection
-eth_server_mac="2c:f7:f1:20:e9:e9"
-eth_server_ip="10.1.2.81/24"
+# Ethernet interface of client connection - Microchip Technology
+eth_server_mac="2c:f7:f1:20:e9:fd"
+eth_server_ip="10.1.2.82/24"
 
 
 # Setup connections
