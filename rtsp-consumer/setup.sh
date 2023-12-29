@@ -11,5 +11,5 @@ python3-venv
 echo Creating python virtual environment
 python3 -m venv venv
 source venv/bin/activate
-pip install pycairo PyGObject
+pip install requirements.txt
 
