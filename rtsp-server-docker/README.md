@@ -13,11 +13,11 @@ The network setup can be run later on as well.
 sudo lshw -class network | awk '/vendor:/{vendor=$2 " " $3} /serial:/{serial=$2} vendor && serial {print "Vendor: " vendor " | MAC: " serial; vendor=""; serial=""}'
 ```
 - 2. Edit the IP and MAC-address of './extras/configure_network.sh' according to documentation
- - Realtek (PoE) interface - for camera connection:
-  - 169.254.54.20/24 (255.255.255.0)
- - Microchip interface - for switch connection:
-  - Windmill: 10.1.2.81/24 (255.255.255.0)
-  - Ship: 10.1.2.82/24 (255.255.255.0)
+    - Realtek (PoE) interface - for camera connection:
+        - 169.254.54.20/24 (255.255.255.0)
+    - Microchip interface - for switch connection:
+        - Windmill: 10.1.2.81/24 (255.255.255.0)
+        - Ship: 10.1.2.82/24 (255.255.255.0)
 ```shell
 gedit ./extras/configure_network.sh
 ```
