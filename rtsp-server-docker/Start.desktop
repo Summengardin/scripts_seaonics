@@ -1,0 +1,8 @@
+# Use this script to launch with 'double-click'
+[Desktop Entry]
+Name=RTSPStreamDocker
+Comment= Run docker container for streaming camera
+Exec=/home/seaonics/Desktop/scripts_seaonics/rtsp-server-docker/start_server.sh
+Icon=/home/seaonics/Desktop/scripts_seaonics/rtsp-server-docker/icon-camera.png
+Terminal=true
+Type=Application
