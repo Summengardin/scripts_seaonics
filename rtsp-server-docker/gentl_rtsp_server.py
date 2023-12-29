@@ -23,7 +23,7 @@ Gst.init(None)
 W = 1280
 H = 1024
 FPS = 200
-FPS_PRINT_INTERVAL = 1
+FPS_PRINT_INTERVAL = 10
 
 
 argparser = argparse.ArgumentParser(description='RTSP server')
