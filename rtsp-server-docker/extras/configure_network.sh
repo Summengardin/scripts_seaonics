@@ -14,11 +14,16 @@ if nmcli con show "eth-server" &> /dev/null; then
 	nmcli connection delete "eth-server"
 fi
 nmcli connection add type ethernet con-name "eth-server" ifname "*" mac $eth_server_mac ip4 $eth_server_ip
+if nmcli con show "eth-internet" &> /dev/null; then
+	nmcli connection delete "eth-internet"
+fi 
+nmcli connection add type ethernet con-name "eth-internet" ifname "*" mac $eth_server_mac
 
 if nmcli con show "eth-camera" &> /dev/null; then
 	nmcli connection delete "eth-camera"
 fi 
 nmcli connection add type ethernet con-name "eth-camera" ifname "*" mac $eth_camera_mac ip4 $eth_camera_ip
+
 
 
 # Delete the default connections
