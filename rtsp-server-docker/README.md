@@ -56,14 +56,16 @@ eg.
 
 ## 5. To modify the network
 To modify the network later on, either:
-- 1. set the correct ip and mac inside extras/configure_network.sh and run
+- set the correct ip and mac inside extras/configure_network.sh and run
 ```shell
 gedit extras/configure_network.sh
 ```
 ```shell
 bash extras/configure_network.sh
 ```
-- 2. use the NetworkManager
+
+
+- or use the NetworkManager
 ```shell
 nm-connection-editor
 ```  
