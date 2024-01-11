@@ -141,6 +141,7 @@ class RTSPCamGrabberProcess():
             "! h264parse "
             "! decodebin "
             "! videoconvert " 
+            "! video/x-raw, format=BGR "
             "! appsink emit-signals=True name=sink"
         )
         pipeline = Gst.parse_launch(pipeline_str)
@@ -218,14 +219,19 @@ class RTSPCamGrabberProcess():
             width = caps.get_structure(0).get_value('width')
             height = caps.get_structure(0).get_value('height')
             
-            expected_size = width * height * 3 // 2 # I420 has 1.5 bytes per pixel
+            #expected_size = width * height * 3 // 2 # I420 has 1.5 bytes per pixel
+            expected_size = width * height * 3 # BGR has 3 bytes per pixel
             if buffer.get_size() != expected_size:
                 log.error(f'{self.rtsp_url}: Buffer size does not match expected size.')
                 return Gst.FlowReturn.ERROR
             
             buffer = buffer.extract_dup(0, buffer.get_size())
-            frame = np.ndarray((height + height // 2, width), buffer=buffer, dtype=np.uint8)
-            frame = cv2.cvtColor(frame, cv2.COLOR_YUV2BGR_I420)
+            frame = np.ndarray((height, width, 3), buffer=buffer, dtype=np.uint8)
+        
+            
+            #buffer = buffer.extract_dup(0, buffer.get_size())
+            #frame = np.ndarray((height + height // 2, width), buffer=buffer, dtype=np.uint8)
+            #frame = cv2.cvtColor(frame, cv2.COLOR_YUV2BGR_I420)
             
             with self.lock:
                 self.last_frame_time.value = time.time()
