@@ -1,0 +1,7 @@
+[Desktop Entry]
+Name=Start display
+Comment= Run script for showing camera streams
+Exec=/home/seaonics/Desktop/scripts_seaonics/rtsp-consumer/start_consumer.sh
+Icon=/home/seaonics/Desktop/scripts_seaonics/rtsp-consumer/extras/icon-camera.png
+Terminal=true
+Type=Application

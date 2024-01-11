@@ -1,0 +1,9 @@
+width: 1280
+height: 1024
+ip: 
+  windmill: "10.1.2.82"
+  ship: "10.1.2.81"
+port:
+  windmill: "8554"
+  ship: "8554"
+mount: "cam"

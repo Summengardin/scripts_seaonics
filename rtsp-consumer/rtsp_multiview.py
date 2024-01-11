@@ -2,23 +2,32 @@ import cv2
 import sys
 import numpy as np
 import time
+import yaml
 
 from lib.rtsp_cam_grab import RTSPCamGrabber
 
 
-W = 1280
-H = 1024
-IP_WINDMILL = "10.1.2.82"
-IP_SHIP = "10.1.2.81"
 
 
-def dummy_frame(tag = "", W=1280, H=1024): 
-        # Generate a dummy frame
-
-        # Background
-        frame = np.full((H, W, 3), (95, 83, 25), dtype=np.uint8)
+def parse_config():
+    with open("config.yaml") as f:
+        cfg = yaml.safe_load(f)
         
-        # setup text
+        width = cfg.get("width")
+        height = cfg.get("height")
+        ip_windmill = cfg.get("ip").get("windmill")
+        ip_ship = cfg.get("ip").get("ship")
+        port_windmill = cfg.get("port").get("windmill")
+        port_ship = cfg.get("port").get("ship")
+        mount = cfg.get("mount")
+    
+    return width, height, ip_windmill, ip_ship, port_windmill, port_ship, mount
+
+
+def dummy_frame(tag = "", W=1280, H=1024):        
+    
+        frame = np.full((H, W, 3), (95, 83, 25), dtype=np.uint8)
+
         font = cv2.FONT_HERSHEY_SIMPLEX
         text = "Server is not connected"
         font_scale = 1.5
@@ -26,37 +35,34 @@ def dummy_frame(tag = "", W=1280, H=1024):
 
         # get boundary of this text
         textsize = cv2.getTextSize(text, font, font_scale, font_thickness)[0]
-
-        # get coords based on boundary
         textX = (frame.shape[1] - textsize[0]) / 2
         textY = (frame.shape[0] + textsize[1]) / 2
         
-        # add text centered on image
         cv2.putText(frame, text, (int(textX), int(textY) ), font, font_scale, (240, 243, 245), font_thickness)
         cv2.putText(frame, f"From {tag}", (int(textX), int(textY+50) ), font, font_scale*0.5, (240, 243, 245), font_thickness//2)
         return frame
     
 
-def create_small_frame(frame1, frame2, rgb_color, outline_color=(0, 255, 0), outline_thickness=2):
-    # Resize frame2 if it's larger than frame1
-    if frame2.shape[0] > frame1.shape[0] or frame2.shape[1] > frame1.shape[1]:
-        scale_ratio = min(frame1.shape[0] / frame2.shape[0], frame1.shape[1] / frame2.shape[1])
-        frame2 = cv2.resize(frame2, None, fx=scale_ratio, fy=scale_ratio, interpolation=cv2.INTER_AREA)
+def create_preview_frame(big_frame, small_frame, fill_rgb=(0,0,0), outline_rgb=(200,200,200), outline_thickness=2):
+    # Resize the small frame if needed
+    if small_frame.shape[0] > big_frame.shape[0] or small_frame.shape[1] > big_frame.shape[1]:
+        scale_ratio = min(big_frame.shape[0] / small_frame.shape[0], big_frame.shape[1] / small_frame.shape[1])
+        small_frame = cv2.resize(small_frame, None, fx=scale_ratio, fy=scale_ratio, interpolation=cv2.INTER_AREA)
 
-    # Create a new temporary frame with the height of frame1 and the width of frame2
-    temp_frame = np.zeros((frame1.shape[0], frame2.shape[1], 3), dtype=np.uint8)
+    # Create frame with the width of the small frame and the height of the big frame
+    temp_frame = np.zeros((big_frame.shape[0], small_frame.shape[1], 3), dtype=np.uint8)
+    temp_frame[:] = fill_rgb
 
-    # Fill the temporary frame with the specified RGB color
-    temp_frame[:] = rgb_color
+    # Add the small frame to temp
+    y_offset = big_frame.shape[0] - small_frame.shape[0]
+    temp_frame[y_offset:y_offset+small_frame.shape[0], :small_frame.shape[1]] = small_frame
 
-    # Overlay frame2 onto the bottom part of the temporary frame
-    y_offset = frame1.shape[0] - frame2.shape[0]
-    temp_frame[y_offset:y_offset+frame2.shape[0], :frame2.shape[1]] = frame2
-
-    # Draw an outline around frame2
-    cv2.rectangle(temp_frame, (0, y_offset), (frame2.shape[1], y_offset + frame2.shape[0]), outline_color, outline_thickness)
+    # Draw an outline
+    cv2.line(temp_frame, (0, y_offset), (small_frame.shape[1], y_offset), outline_rgb, outline_thickness)
+    cv2.line(temp_frame, (0+outline_thickness//2, y_offset), (0+outline_thickness//2, big_frame.shape[0]), outline_rgb, outline_thickness)
 
     return temp_frame
+    
     
 def display_rtsp_frames_same_window(cam_grabbers, enable_logging=False):
     cv2.namedWindow("Camera view", cv2.WINDOW_KEEPRATIO | cv2.WINDOW_NORMAL)
@@ -82,12 +88,10 @@ def display_rtsp_frames_same_window(cam_grabbers, enable_logging=False):
 
             # Resize the secondary frame to be smaller
             small_frame = cv2.resize(secondary_frame, None, fx=0.25, fy=0.25, interpolation=cv2.INTER_AREA)
-            small_frame = create_small_frame(primary_frame, small_frame, (0,0,0))
+            small_frame = create_preview_frame(primary_frame, small_frame, (0,0,0))
             output_frame = np.hstack([primary_frame, small_frame])
 
-
-            cv2.putText(output_frame, "Press 'ESC' to exit        Press 'SPACE' to change camera", (20, primary_frame.shape[0] - 20), cv2.FONT_HERSHEY_DUPLEX, 0.4, (240, 243, 245), 1)
-           
+            cv2.putText(output_frame, "Press 'ESC' to exit        Press 'SPACE' to change camera", (20, primary_frame.shape[0] - 20), cv2.FONT_HERSHEY_SIMPLEX, 0.4, (240, 243, 245), 1)
             cv2.imshow("Camera view", output_frame)
 
 
@@ -102,16 +106,12 @@ def display_rtsp_frames_same_window(cam_grabbers, enable_logging=False):
         
 
 if __name__ == "__main__":
-    if len(sys.argv) < 2:
-        #print("Usage: python3 stream_viewer.py <RTSP URL 1> <RTSP URL 2> ...")
-        print("Using 'rtsp://10.1.2.81:8554/cam' and 'rtsp://10.1.2.82:8554/cam'")
-        
-        rtsp_urls = [f"rtsp://{IP_WINDMILL}:8554/cam", f"rtsp://{IP_SHIP}:8554/cam"]
-        #rtsp_urls = ["rtsp://10.0.0.34:8554/cam", "rtsp://10.0.0.39:8554/cam"]
-    else:
-        rtsp_urls = sys.argv[1:]
-        
-         
+    W, H, IP_WINDMILL, IP_SHIP, PORT_WINDMILL, PORT_SHIP, MOUNT = parse_config()
+    print(f"Image resolution: {W} x {H}")
+
+    print(f"Using 'rtsp://{IP_WINDMILL}:{PORT_WINDMILL}/{MOUNT}' and 'rtsp://{IP_SHIP}:{PORT_SHIP}]/{MOUNT}'\n")
+    rtsp_urls = [f"rtsp://{IP_WINDMILL}:{PORT_WINDMILL}/{MOUNT}", f"rtsp://{IP_SHIP}:{PORT_SHIP}/{MOUNT}"]
+
     rtsp_grabbers = [RTSPCamGrabber(rtsp_url=url, W=W, H=H) for url in rtsp_urls]
     
     try:
