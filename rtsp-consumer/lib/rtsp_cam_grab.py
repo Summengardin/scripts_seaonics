@@ -8,11 +8,13 @@ import typing
 import ctypes
 import cv2
 import gi
+import logging
 
 
 gi.require_version('Gst', '1.0')
 from gi.repository import Gst
 
+log = logging.getLogger(__name__)
 
 Gst.debug_set_active(False)
 Gst.debug_set_default_threshold(0)
@@ -40,6 +42,8 @@ class RTSPCamGrabber():
         self.cam_grabber_process = RTSPCamGrabberProcess(rtsp_url, W, H, FPS, cam_id)  
         self.p = multiprocessing.Process(target=self.cam_grabber_process.run, args=())
         self.p.daemon = CAM_GRABBER_PROCESS_SILENT
+        
+        log.info(f'{self.rtsp_url}: Starting RTSP grabber')
         self.p.start()
         
         
@@ -68,16 +72,16 @@ class RTSPCamGrabber():
             if True:
             #if self.p.is_alive():
                 self.p.terminate()
-                print('Terminated RTSP grabber process')
+                log.debug(f'{self.rtsp_url}: Terminated RTSP grabber process')
         except:
-            print('Could not terminate RTSP grabber process')
+            log.debug(f'{self.rtsp_url}: Could not terminate RTSP grabber process')
         try:
             self.p.join()
-            print('Joined RTSP grabber process')
+            log.debug(f'{self.rtsp_url}: Joined RTSP grabber process')
         except:
-            print('Could not join RTSP grabber process')
+            log.debug(f'{self.rtsp_url}: Could not join RTSP grabber process')
         
-        print('Stopped RTSP grabber')
+        log.info(f'{self.rtsp_url}: Stopped RTSP grabber')
         
         
     def create_dummy_frame(self, message=None):
@@ -97,12 +101,10 @@ class RTSPCamGrabber():
         cv2.putText(frame, f"RTSP Client says:", (int(textX), int(textY-50) ), font, font_scale*0.5, (240, 243, 245), font_thickness//2)
         cv2.putText(frame, text, (int(textX), int(textY) ), font, font_scale, (240, 243, 245), font_thickness)
         
-        
         return frame
     
     
     def __del__(self):
-        #self.stop()
         pass
         
     def __enter__(self):
@@ -129,7 +131,7 @@ class RTSPCamGrabberProcess():
         
         self.pipeline = None
         self.pipeline = self.create_pipeline()
-        print('Created pipeline')
+        
         
     
     def create_pipeline(self):
@@ -150,10 +152,12 @@ class RTSPCamGrabberProcess():
         sink.set_property('sync', False)
         sink.connect('new-sample', self.on_new_sample, sink)
         
+        log.debug(f'{self.rtsp_url}: Created pipeline')
+        
         return pipeline
     
     def run(self):
-        print('Starting RTSP grabber process')
+        log.debug(f'{self.rtsp_url}: Starting RTSP grabber process')
         with self.lock:
             self.is_running.value = True
         self.pipeline.set_state(Gst.State.PLAYING)
@@ -164,13 +168,13 @@ class RTSPCamGrabberProcess():
         with self.lock:
             self.is_running.value = False
             self.exit_event.set()
-        print('RTSP grabber process is stopping')
+        log.debug(f'{self.rtsp_url}: RTSP grabber process is stopping')
         self.check_and_restart_thread.join()
         self.pipeline.set_state(Gst.State.NULL)
-        print('Stopped RTSP grabber process')
+        log.debug(f'{self.rtsp_url}: Stopped RTSP grabber process')
      
     def restart_pipeline(self):
-        print('Restarting pipeline\n')
+        log.debug(f'{self.rtsp_url}: Restarting pipeline\n')
         self.pipeline.set_state(Gst.State.NULL)
         self.pipeline = self.create_pipeline()
         self.pipeline.set_state(Gst.State.PLAYING)
@@ -191,7 +195,7 @@ class RTSPCamGrabberProcess():
 
             # Check if pipeline is still running
             if self.pipeline.get_state(0)[1] != Gst.State.PLAYING:
-                print('Pipeline is not running')
+                log.info(f'{self.rtsp_url}: Pipeline is not running. Will try to restart.')
                 restart = True
                 continue
             
@@ -199,11 +203,11 @@ class RTSPCamGrabberProcess():
             with self.lock:
                 last_frame_age = now - self.last_frame_time.value
                 if last_frame_age > FRAME_RECEIVE_TIMEOUT:
-                    print(f'No frames received for {last_frame_age * 1000:.3f} milliseconds')
+                    log.info(f'No frames received for {last_frame_age * 1000:.3f} milliseconds. Will try to restart.')
                     restart = True
              
                 
-        print('Exiting monitor thread')
+        log.debug(f'{self.rtsp_url}: Exiting monitor thread')
     
     
     def on_new_sample(self, sink, data):
@@ -216,7 +220,7 @@ class RTSPCamGrabberProcess():
             
             expected_size = width * height * 3 // 2 # I420 has 1.5 bytes per pixel
             if buffer.get_size() != expected_size:
-                print('Buffer size does not match expected size.')
+                log.error(f'{self.rtsp_url}: Buffer size does not match expected size.')
                 return Gst.FlowReturn.ERROR
             
             buffer = buffer.extract_dup(0, buffer.get_size())
@@ -255,7 +259,7 @@ if __name__ == '__main__':
         cv2.destroyAllWindows()
         
     
-    print('Exiting main')
+    log.debug('Exiting main')
             
             
             

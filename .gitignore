@@ -6,4 +6,5 @@
 **/out
 **/__pycache__
 **/gst-shark/gst-shark
-genicam/rtspserver.tar
+**.tar
+**.log

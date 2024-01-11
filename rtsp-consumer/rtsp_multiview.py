@@ -1,12 +1,16 @@
 import cv2
-import sys
 import numpy as np
-import time
 import yaml
 
 from lib.rtsp_cam_grab import RTSPCamGrabber
 
-
+import logging
+logging.basicConfig(
+    filename='consumer.log', encoding='utf-8',
+    format='%(asctime)s.%(msecs)03d %(levelname)-8s %(message)s',
+    level=logging.DEBUG,
+    datefmt='%d-%m-%Y %H:%M:%S')
+log = logging.getLogger(__name__)
 
 
 def parse_config():
@@ -21,26 +25,28 @@ def parse_config():
         port_ship = cfg.get("port").get("ship")
         mount = cfg.get("mount")
     
+    log.info("Config parsed")
+    log.debug(f"Config: {cfg}")
+    
     return width, height, ip_windmill, ip_ship, port_windmill, port_ship, mount
 
 
 def dummy_frame(tag = "", W=1280, H=1024):        
+    frame = np.full((H, W, 3), (95, 83, 25), dtype=np.uint8)
+
+    font = cv2.FONT_HERSHEY_SIMPLEX
+    text = "Server is not connected"
+    font_scale = 1.5
+    font_thickness = 2
+
+    # get boundary of this text
+    textsize = cv2.getTextSize(text, font, font_scale, font_thickness)[0]
+    textX = (frame.shape[1] - textsize[0]) / 2
+    textY = (frame.shape[0] + textsize[1]) / 2
     
-        frame = np.full((H, W, 3), (95, 83, 25), dtype=np.uint8)
-
-        font = cv2.FONT_HERSHEY_SIMPLEX
-        text = "Server is not connected"
-        font_scale = 1.5
-        font_thickness = 2
-
-        # get boundary of this text
-        textsize = cv2.getTextSize(text, font, font_scale, font_thickness)[0]
-        textX = (frame.shape[1] - textsize[0]) / 2
-        textY = (frame.shape[0] + textsize[1]) / 2
-        
-        cv2.putText(frame, text, (int(textX), int(textY) ), font, font_scale, (240, 243, 245), font_thickness)
-        cv2.putText(frame, f"From {tag}", (int(textX), int(textY+50) ), font, font_scale*0.5, (240, 243, 245), font_thickness//2)
-        return frame
+    cv2.putText(frame, text, (int(textX), int(textY) ), font, font_scale, (240, 243, 245), font_thickness)
+    cv2.putText(frame, f"From {tag}", (int(textX), int(textY+50) ), font, font_scale*0.5, (240, 243, 245), font_thickness//2)
+    return frame
     
 
 def create_preview_frame(big_frame, small_frame, fill_rgb=(0,0,0), outline_rgb=(200,200,200), outline_thickness=2):
@@ -107,9 +113,9 @@ def display_rtsp_frames_same_window(cam_grabbers, enable_logging=False):
 
 if __name__ == "__main__":
     W, H, IP_WINDMILL, IP_SHIP, PORT_WINDMILL, PORT_SHIP, MOUNT = parse_config()
-    print(f"Image resolution: {W} x {H}")
+    log.debug(f"Image resolution: {W} x {H}")
 
-    print(f"Using 'rtsp://{IP_WINDMILL}:{PORT_WINDMILL}/{MOUNT}' and 'rtsp://{IP_SHIP}:{PORT_SHIP}]/{MOUNT}'\n")
+    log.info(f"Using 'rtsp://{IP_WINDMILL}:{PORT_WINDMILL}/{MOUNT}' and 'rtsp://{IP_SHIP}:{PORT_SHIP}]/{MOUNT}'\n")
     rtsp_urls = [f"rtsp://{IP_WINDMILL}:{PORT_WINDMILL}/{MOUNT}", f"rtsp://{IP_SHIP}:{PORT_SHIP}/{MOUNT}"]
 
     rtsp_grabbers = [RTSPCamGrabber(rtsp_url=url, W=W, H=H) for url in rtsp_urls]
@@ -117,7 +123,7 @@ if __name__ == "__main__":
     try:
         display_rtsp_frames_same_window(rtsp_grabbers)
     except Exception as e:
-        print(f"Error displaying frames: {e}")
+        log.error(f"Error displaying frames: {e}")
         
     for grabber in rtsp_grabbers:
         grabber.stop()
