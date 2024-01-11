@@ -143,7 +143,7 @@ class RTSPCamGrabberProcess():
             "! avdec_h264 "
             "! videoconvert " 
             "! video/x-raw, format=BGR "
-            "! appsink emit-signals=True name=sink"
+            "! appsink emit-signals=True name=sink sync=False max-buffers=1 drop=True"
         )
         pipeline = Gst.parse_launch(pipeline_str)
         
