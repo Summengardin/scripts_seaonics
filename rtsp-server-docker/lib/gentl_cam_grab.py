@@ -14,7 +14,7 @@ from genicam.gentl import TimeoutException, IoException
 
 PRODUCER_PATH = "/opt/pylon/lib/gentlproducer/gtl/ProducerGEV.cti"
 SERIAL_NUMBER_ACE2 = "NOT USED"
-H, W, D = 720, 1280, 3
+H, W, D = 1024, 1280, 3
 IMAGE_FORMAT = "BayerBG8"
 #IMAGE_FORMAT = "YUV422_YUYV_Packed"
 
@@ -38,6 +38,7 @@ class CamGrabber():
         self.H = H
         self.W = W
         self.D = D
+        #self.D = 4 # BGRX test
  
  
     def get_frame(self) -> (np.ndarray[typing.Any, np.dtype[np.uint8]]) or None:      
@@ -47,12 +48,9 @@ class CamGrabber():
                 self.last_new_frame_time = now
                 self.cam_grabber_process.new_frame_available.value = 0
                             
-                frame = np.asarray(self.cam_grabber_process.frame_arr).reshape(self.H,self.W,self.D)
-                
-                
-                self.last_frame = frame 
-                
-                return frame
+                self.last_frame = np.asarray(self.cam_grabber_process.frame_arr).reshape(self.H,self.W,self.D)
+
+                return self.last_frame
             else:
                 if (now - self.last_new_frame_time > self.max_frame_time):
                     return None
@@ -104,7 +102,6 @@ class CamGrabberProcess():
         
         self.last_frame_time = multiprocessing.Value('d', 0.0)
         self.frame_arr = multiprocessing.sharedctypes.RawArray(ctypes.c_uint8, self.H*self.W*self.D)
-        #self.frame_arr = multiprocessing.sharedctypes.RawArray('i', H*W*1)
         self.lock = multiprocessing.Lock()
         self.new_frame_available = multiprocessing.Value('i', 0)
     
@@ -208,7 +205,7 @@ class CamGrabberProcess():
             print("Found following devices:")
             for device in self.h.device_info_list:
                 properties = device.property_dict
-                print(f"S/N: {properties['serial_number']} | Model: {properties['model']}")
+                print(f"   - S/N: {properties['serial_number']} | Model: {properties['model']}")
 
             #print(f"\nConnecting to camera: {serial_number}")
             if len(self.h.device_info_list) > 1:
@@ -253,9 +250,11 @@ class CamGrabberProcess():
         print("\n-- Configuring camera --")
         print("Current PixelFormat: ", camera.remote_device.node_map.PixelFormat.value)
         print("Current PacketSize: ", camera.remote_device.node_map.GevSCPSPacketSize.value)
-        print("Current AcquisitionFrameRateEnable: ", camera.remote_device.node_map.AcquisitionFrameRateEnable.value,)
+        print("Current AcquisitionFrameRateEnable: ", camera.remote_device.node_map.AcquisitionFrameRateEnable.value)
         print("Current Width: ", camera.remote_device.node_map.Width.value)
         print("Current Height: ", camera.remote_device.node_map.Height.value)
+        #print("Current EnableResend: ", camera.remote_device.node_map.EnableResend.value)
+        #print("Current MaxNumBuffer: ", camera.remote_device.node_map.MaxNumBuffer.value)
         print("")
         
         camera.remote_device.node_map.PixelFormat.value = IMAGE_FORMAT
@@ -297,10 +296,7 @@ class CamGrabberProcess():
                     fps_counter += 1
                     new_frame_available.value = 1
                     
-                    flat_frame = frame.flatten()
-                    
                     ctypes.memmove(frame_array, frame.ctypes.data, frame_array._length_)
-                    #frame_array[:] = flat_frame[:]
                     
                 has_cam = True                
                  
@@ -323,13 +319,14 @@ class CamGrabberProcess():
         #print("[->]Retrieve img")
 
         img = None
-        data_format = component.data_format
         frame = component.data.reshape(component.height, component.width, int(component.num_components_per_pixel))
 
         if IMAGE_FORMAT == "Mono8":
             img = cv2.cvtColor(frame, cv2.COLOR_GRAY2BGR)
         elif IMAGE_FORMAT == "BayerBG8" or IMAGE_FORMAT == "BayerBG10p" or IMAGE_FORMAT == "BayerBG10":
-            img = cv2.cvtColor(frame, cv2.COLOR_BayerBG2BGR)
+            #img = cv2.cvtColor(frame, cv2.COLOR_BayerRG2BGR)
+            #img = cv2.cvtColor(frame, cv2.COLOR_BayerBGGR2BGR)
+            img = cv2.cvtColor(frame, cv2.COLOR_BayerRG2BGR)
         elif IMAGE_FORMAT == "YUV422_8" or IMAGE_FORMAT == "YUV422_YUYV_Packed":
             img = cv2.cvtColor(frame, cv2.COLOR_YUV2BGR_YUYV) 
 
@@ -346,14 +343,16 @@ class CamGrabberProcess():
 if __name__== "__main__":
 
     with CamGrabber() as cam_grabber:
-        cv2.namedWindow("Window", cv2.WINDOW_NORMAL)
+        #cv2.namedWindow("Window", cv2.WINDOW_NORMAL)
+        cv2.namedWindow("Window", cv2.WINDOW_KEEPRATIO | cv2.WINDOW_FULLSCREEN)
+        #cv2.setWindowProperty("Window", cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
         time.sleep(3)
         while cam_grabber.is_active():
             if cam_grabber.is_connected():
                 frame = cam_grabber.get_frame()
                 
                 if frame is not None:
-                    cv2.cvtColor(frame, cv2.COLOR_RGB2BGR, frame)
+                    #cv2.cvtColor(frame, cv2.COLOR_RGB2BGR, frame)
                     cv2.imshow("Window", frame)
                     
             if cv2.waitKey(1) == "q" or cv2.getWindowProperty("Window", cv2.WND_PROP_VISIBLE) < 1:

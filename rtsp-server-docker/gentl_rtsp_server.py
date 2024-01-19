@@ -9,6 +9,14 @@ import lib.gentl_cam_grab as camgrab
 import cv2
 import argparse
 
+import logging
+logging.basicConfig(
+    filename='server.log', encoding='utf-8',
+    format='%(asctime)s.%(msecs)03d %(levelname)-8s %(message)s',
+    level=logging.DEBUG,
+    datefmt='%d-%m-%Y %H:%M:%S')
+log = logging.getLogger(__name__)
+
 
 gi.require_version('Gst', '1.0')
 gi.require_version('GstRtspServer', '1.0')
@@ -50,13 +58,16 @@ class RTSPServer:
         if not no_cam:
             self.setup_cam_grabber(self.cti_file)
                  
-        self.launch_str = (f"appsrc name=source is-live=true block=true format=GST_FORMAT_TIME "
-                            f"caps=video/x-raw,width={W},height={H},framerate={FPS}/1,format=RGB "
+        self.launch_str = (f"appsrc name=source is-live=true block=false format=GST_FORMAT_TIME "
+                            f"caps=video/x-raw,width={W},height={H},framerate={FPS}/1,format=BGR "
                             "! videoconvert "
+                            
                             "! nvvidconv "
-                            "! video/x-raw(memory:NVMM), format=(string)I420"
-                            "! nvv4l2h264enc" #profile=0-Baseline preset-level=4-Ultrafast
-                            "! rtph264pay config-interval=0 pt=96 name=pay0"
+                            "! video/x-raw(memory:NVMM), format=(string)I420 "
+                            #"! queue max-size-buffers=1 leaky=downstream "
+                            #"! queue max-size-buffers=1"
+                            "! nvv4l2h264enc  " #profile=0-Baseline preset-level=4-Ultrafast
+                            "! rtph264pay config-interval=1 pt=96 name=pay0"
                             )
 
         self.setup_factory()
@@ -88,7 +99,7 @@ class RTSPServer:
         self.factory.set_latency(0)
         self.factory.set_shared(False)
         self.factory.set_stop_on_disconnect(True) 
-        self.factory.set_protocols(GstRtsp.RTSPLowerTrans.UDP)
+        #self.factory.set_protocols(GstRtsp.RTSPLowerTrans.UDP)
         
         self.mounts.add_factory(self.mount_point, self.factory)
         #self.server.attach(None)
@@ -152,8 +163,11 @@ class RTSPServer:
         if frame is None:
             msg = "Dummy-frame" if self.no_cam else "No camera connected"
             frame = self.create_dummy_frame(msg)
+            self.fps_counter = 0
         else:
             self.fps_counter, self.last_fps_print_time = self.__print_fps(self.fps_counter, self.last_fps_print_time)
+        
+        
         
         data = frame.tobytes()
         

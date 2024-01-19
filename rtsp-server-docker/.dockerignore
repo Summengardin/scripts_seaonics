@@ -10,6 +10,7 @@
 .taskcluster.yml
 
 # Docker
+#docker_mounts/
 docker-compose.yml
 Dockerfile
 .docker

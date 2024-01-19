@@ -87,7 +87,10 @@ RUN rm -rf /pyln
 
 WORKDIR /app
 # Copy the current directory contents into the container at /app
-COPY . /app
+COPY gentl_rtsp_server.py /app
+COPY monitor_server.py /app
+COPY main.py /app
+COPY lib /app/lib
 
 
 RUN rm ~/.cache/gstreamer-1.0/registry*.bin; exit 0
