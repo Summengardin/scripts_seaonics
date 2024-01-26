@@ -54,6 +54,7 @@ class RTSPServer:
         self.pts = 0
         self.time_per_frame = Gst.SECOND / FPS
         self.is_running = False
+    
 
         if not no_cam:
             self.setup_cam_grabber(self.cti_file)
@@ -96,9 +97,9 @@ class RTSPServer:
         
         self.factory = GstRtspServer.RTSPMediaFactory.new()
         self.factory.set_launch(self.launch_str)
-        self.factory.set_latency(0)
+        self.factory.set_latency(50)
         self.factory.set_shared(False)
-        self.factory.set_stop_on_disconnect(True) 
+        #self.factory.set_stop_on_disconnect(True) 
         #self.factory.set_protocols(GstRtsp.RTSPLowerTrans.UDP)
         
         self.mounts.add_factory(self.mount_point, self.factory)
@@ -118,7 +119,8 @@ class RTSPServer:
         print("Client connected: ", client.get_connection().get_ip())
         self.client = client
         self.client.connect('closed', self.on_client_disconnected)
-        
+        self.last_client_active_time = time.time()
+    
         
     def on_client_disconnected(self, user_data):
         print("Client disconnected: ", self.client.get_connection().get_ip())
@@ -131,7 +133,8 @@ class RTSPServer:
         self.server.get_session_pool().filter(filter_func)
         self.server.get_session_pool().cleanup()
         print(f"Session pool size after cleanup: {self.server.get_session_pool().get_n_sessions()}")
-
+    
+    
 
     def on_media_configure(self, factory, media):
         self.source = media.get_element().get_child_by_name('source')
@@ -187,7 +190,7 @@ class RTSPServer:
         return True  # Return True to keep the timeout active
     
     def create_dummy_frame(self, message="Camera not connected"):
-        frame = np.full((self.H, self.W, 3), (25, 83, 95), dtype=np.uint8)
+        frame = np.full((self.H, self.W, 3), (95, 83, 25), dtype=np.uint8)
 
         font = cv2.FONT_HERSHEY_SIMPLEX
         text = message
