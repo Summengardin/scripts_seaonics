@@ -22,7 +22,7 @@ Gst.init(None)
 
 
 CAM_GRABBER_PROCESS_SILENT = False
-DEFAULT_RTSP_LOCATION = "rtsp://169.254.54.69:8554/test"
+DEFAULT_RTSP_LOCATION = "rtsp://localhost:8554/cam"
 FRAME_RECEIVE_TIMEOUT = 1 # seconds
 
 
@@ -140,7 +140,9 @@ class RTSPCamGrabberProcess():
             "! rtph264depay "
             "! h264parse "
             #"! decodebin "
+            
             "! avdec_h264 "
+            "! queue max-size-buffers=1 leaky=downstream "
             "! videoconvert " 
             "! video/x-raw, format=BGR "
             "! appsink emit-signals=True name=sink sync=False max-buffers=1 drop=True"
