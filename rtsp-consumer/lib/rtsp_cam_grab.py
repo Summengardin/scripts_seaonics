@@ -138,7 +138,7 @@ class RTSPCamGrabberProcess():
         pipeline_str = (
             f"rtspsrc location={self.rtsp_url} latency=0 "
             "! rtph264depay "
-            "! h264parse "
+            #"! h264parse " # H264 parsing is done on server-side
             #"! decodebin "
             
             "! avdec_h264 "
