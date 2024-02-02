@@ -83,7 +83,7 @@ def display_rtsp_frames_same_window(cam_grabbers, enable_logging=False):
             frame = grabber.get_frame()
             if frame is not None:
                 fps = grabber.get_fps()
-                frame = cv2.putText(frame, f"FPS: {fps:.2f}", (20, 20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (240, 243, 245), 1)
+                frame = cv2.putText(frame, f"FPS: {fps:.0f}", (20, 20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (240, 243, 245), 1)
                 frames_to_display.append(frame)
             else:
                 frame = dummy_frame(grabber.rtsp_url, W=grabber.W, H=grabber.H)
