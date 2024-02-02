@@ -67,7 +67,8 @@ class RTSPServer:
                             "! video/x-raw(memory:NVMM), format=(string)I420 "
                             #"! queue max-size-buffers=1 leaky=downstream "
                             #"! queue max-size-buffers=1"
-                            "! nvv4l2h264enc  " #profile=0-Baseline preset-level=4-Ultrafast
+                            "! nvv4l2h264enc profile=High preset-level=1 " #profile=0-Baseline preset-level=4-Ultrafast
+                            "! h264parse "
                             "! rtph264pay config-interval=1 pt=96 name=pay0"
                             )
 

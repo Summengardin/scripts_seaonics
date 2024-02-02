@@ -341,12 +341,11 @@ class CamGrabberProcess():
         
 
 if __name__== "__main__":
-
     with CamGrabber() as cam_grabber:
         #cv2.namedWindow("Window", cv2.WINDOW_NORMAL)
         cv2.namedWindow("Window", cv2.WINDOW_KEEPRATIO | cv2.WINDOW_FULLSCREEN)
         #cv2.setWindowProperty("Window", cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
-        time.sleep(3)
+        #time.sleep(3)
         while cam_grabber.is_active():
             if cam_grabber.is_connected():
                 frame = cam_grabber.get_frame()
