@@ -60,8 +60,8 @@ class RTSPServer:
             self.setup_cam_grabber(self.cti_file)
                  
         self.launch_str = (f"appsrc name=source is-live=true block=false format=GST_FORMAT_TIME "
-                            f"caps=video/x-raw,width={W},height={H},framerate={FPS}/1,format=BGR "
-                            "! videoconvert "
+                            f"caps=video/x-raw,width={W},height={H},framerate={FPS}/1,format=BGRx "
+                            #"! videoconvert "
                             
                             "! nvvidconv "
                             "! video/x-raw(memory:NVMM), format=(string)I420 "

@@ -14,7 +14,7 @@ from genicam.gentl import TimeoutException, IoException
 
 PRODUCER_PATH = "/opt/pylon/lib/gentlproducer/gtl/ProducerGEV.cti"
 SERIAL_NUMBER_ACE2 = "NOT USED"
-H, W, D = 1024, 1280, 3
+H, W, D = 1024, 1280, 4
 IMAGE_FORMAT = "BayerBG8"
 #IMAGE_FORMAT = "YUV422_YUYV_Packed"
 
@@ -327,9 +327,11 @@ class CamGrabberProcess():
             #img = cv2.cvtColor(frame, cv2.COLOR_BayerRG2BGR)
             #img = cv2.cvtColor(frame, cv2.COLOR_BayerBGGR2BGR)
             img = cv2.cvtColor(frame, cv2.COLOR_BayerRG2BGR)
+            img = cv2.cvtColor(img, cv2.COLOR_BGR2BGRA) 
         elif IMAGE_FORMAT == "YUV422_8" or IMAGE_FORMAT == "YUV422_YUYV_Packed":
             img = cv2.cvtColor(frame, cv2.COLOR_YUV2BGR_YUYV) 
 
+        
         return img
         #return frame
         
