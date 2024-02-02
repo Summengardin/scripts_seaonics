@@ -64,11 +64,6 @@ class RTSPCamGrabber():
                     return self.dummy_frame
                 return self.last_frame
         
-      
-    def get_fps(self):
-        with self.cam_grabber_process.lock:
-            return self.cam_grabber_process.fps_value.value
-        
           
     def stop(self):
         try:
@@ -133,7 +128,6 @@ class RTSPCamGrabberProcess():
         self.last_frame_time = multiprocessing.Value('d', 0)
         self.is_running = multiprocessing.Value('b', False)
         self.exit_event = multiprocessing.Event()
-        self.fps_value = multiprocessing.Value('d', 0.0)
         
         self.pipeline = None
         self.pipeline = self.create_pipeline()
