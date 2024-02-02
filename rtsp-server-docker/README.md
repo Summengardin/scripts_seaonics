@@ -16,8 +16,8 @@ sudo lshw -class network | awk '/vendor:/{vendor=$2 " " $3} /serial:/{serial=$2}
     - Realtek (PoE) interface - for camera connection:
         - 169.254.54.20/24 (255.255.255.0)
     - Microchip interface - for switch connection:
-        - Windmill: 10.1.2.81/24 (255.255.255.0)
-        - Ship: 10.1.2.82/24 (255.255.255.0)
+        - Windmill: 10.1.7.81/16       ( note: /16 = 255.255.0.0 )
+        - Ship: 10.1.7.82/16           ( note: /16 = 255.255.0.0 )
 ```shell
 gedit ./extras/configure_network.sh
 ```
