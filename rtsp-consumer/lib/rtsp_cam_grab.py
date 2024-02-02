@@ -134,6 +134,7 @@ class RTSPCamGrabberProcess():
         self.is_running = multiprocessing.Value('b', False)
         self.exit_event = multiprocessing.Event()
         self.fps_value = multiprocessing.Value('d', 0.0)
+        self.fps_counter = 0
         
         self.pipeline = None
         self.pipeline = self.create_pipeline()
@@ -244,10 +245,13 @@ class RTSPCamGrabberProcess():
             
             with self.lock:
                 current_time = time.time()
-                if self.last_frame_time.value > 0:
-                    time_diff = current_time - self.last_frame_time.value
-                    if time_diff > 0:
-                        self.fps_value.value = 1.0 / time_diff
+                self.fps_counter += 1
+
+                time_diff = current_time - self.last_frame_time.value
+                if time_diff > 1000: # 1 sekund
+                    self.fps_value.value = self.fps_counter
+                    self.fps_counter = 0
+                    
                 self.last_frame_time.value = current_time
                 ctypes.memmove(self.frame_arr, frame.ctypes.data, self.frame_arr._length_)
                 self.new_frame_available.value = True
