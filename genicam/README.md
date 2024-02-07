@@ -13,7 +13,7 @@ Complete installation guide for Harvesters can be found on their [GitHub](https:
 In short you need a GenTL producer.
 
 
-In short, you need to install a producer from this [link](http://static.matrix-vision.com/mvIMPACT_Acquire/). 
+That GenTL producer can be downloaded and installed from this [link](http://static.matrix-vision.com/mvIMPACT_Acquire/). 
 Scroll down to find the latest version, and then download the correct version for your system.
 
 
