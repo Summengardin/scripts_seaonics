@@ -9,10 +9,12 @@ Terminology in terms of the RTSP stream:
 
 ## Getting started
 
-Install Harvesters following [this](https://github.com/genicam/harvesters#getting-started-with-harvester) link.
+Complete installation guide for Harvesters can be found on their [GitHub](https://github.com/genicam/harvesters#getting-started-with-harvester). 
+In short you need a GenTL producer.
 
-For the GenTL producer follow the link in the Harvesters guide. Or click [here](http://static.matrix-vision.com/mvIMPACT_Acquire/). 
-Then scroll down to find the latest version, and the download the correct version for your system.
+
+In short, you need to install a producer from this [link](http://static.matrix-vision.com/mvIMPACT_Acquire/). 
+Scroll down to find the latest version, and then download the correct version for your system.
 
 
 ## Required Packages
@@ -37,6 +39,6 @@ $ pip3 install -r requirements.txt
 
 
 ## Automagical restarting
-As a hacky solution for automatic restart, two  extra python scripts are made: One for the server [monitor_server.py](monitor_server.py) and one for the client [monitor_client.py](monitor_server.py)
+As a hacky solution for automatic restart, two extra python scripts are made: One for the server [monitor_server.py](monitor_server.py) and one for the client [monitor_client.py](monitor_server.py)
 
 
