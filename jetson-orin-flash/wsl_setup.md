@@ -4,12 +4,13 @@ Follow this [guide](https://www.cyberithub.com/how-to-install-ubuntu-20-04-lts-o
 # Step 2: Install sdkmanager dependencies and GUI packages
 
 > sudo apt update && sudo apt full-upgrade
+> 
 > sudo apt install libxshmfence1 libglu1 libnss3-dev libgdk-pixbuf2.0-dev libgtk-3-dev libxss-dev
 
 # Step 3; install sdkmanager
-Download the sdkmanager debian package from [Nvidia](https://developer.nvidia.com/sdk-manager) on windows browser
+Download the sdkmanager debian package from [Nvidia](https://developer.nvidia.com/sdk-manager) on Windows-browser
 Install the downloaded debian package in wsl
-> sudo apt install /mnt/c/Users/{username}/Downloads/sdkmanager_{version}_amd64.deb
+> sudo apt install /mnt/c/Users/{username}/Downloads/sdkmanager_{version}-{build}_amd64.deb
 
 # Step 4: Install usbipd
 In windows install usbipd with the following command
@@ -17,6 +18,7 @@ In windows install usbipd with the following command
 
 Afterwards go back to wsl and run
 > sudo apt install linux-tools-generic hwdata
+> 
 > sudo update-alternatives --install /usr/local/bin/usbip usbip /usr/lib/linux-tools/*-generic/usbip 20
 
 
