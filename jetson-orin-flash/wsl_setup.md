@@ -22,21 +22,27 @@ Afterwards go back to wsl and run
 > sudo update-alternatives --install /usr/local/bin/usbip usbip /usr/lib/linux-tools/*-generic/usbip 20
 
 
-To attach the device to wsl run
-> usbipd list
+# Step 5; attach the device to wsl
+This [link](https://learn.microsoft.com/en-us/windows/wsl/connect-usb#attach-a-usb-device) explains everything.
 
+In a Windows terminal, do
+> usbipd list
 The device should come up as either
 * APX
-* Remote NDIS Compatible Device, USB Serial Device (COM4), ...
+* Remote NDIS Compatible Device, USB Serial Device ...
 
-Once you have found the bus-id the device is connected to, run
-> usbipd wsl attach -b <BUDID> -d <WSLDISTRIBUTION> -a
+Note the BUSID of the device.
+
+Once you have found the bus-id the device is connected to, run these commands in a Windows Terminal with admin privileges.
+> usbipd bind --busid {BUSID}
+>
+> usbipd attach --wsl --busid {BUSID}
 
 usbipd should then after a couple seconds log "attached"
 
 If usbipd does not work for whatever reason, try uninstalling and then re-installing it. In my case "Device is in Error State" was an error in usbipd which was fixed with a re-install.
 
-# Step 5: Run sdkmanager
+# Step 6: Run sdkmanager
 Run sdkmanager on wsl using the sdkmanager command and complete the setup of your Orin
 
 To login you must use the QR-method
@@ -45,21 +51,21 @@ NOTE: After flashing the device (If you skip that step or not) use the eth conne
 Go on your Orin and find its IPv4 address, and write it into the sdkmanager address input, but delete the pre-existing address instead of replacing the last couple sequences.
 For some reason, replacing the 55.0 in 192.168.55.0 did not work for me, but backspacing the whole string and writing the ip from scratch worked.
 
-# Step 6: Add nvcc to path
+# Step 7: Add nvcc to path
 If the 
 > nvcc --version
 command doesn't work on the Orin, append the following to the Orins ~/.bashrc file
 > export PATH="/usr/local/cuda-{version}/bin:$PATH"
 > export LD_LIBRARY_PATH="/usr/local/cuda-{version}/lib64:$LD_LIBRARY_PATH"
 
-# Step 7: gst environment configs
+# Step 8: gst environment configs
 Append
 > export LD_PRELOAD=/usr/lib/aarch64-linux-gnu/libgomp.so.1  
 to ~/.bashrc, then run 
 > source ~/.bashrc
 or reboot
 
-# Step 8: Power mode
+# Step 9: Power mode
 In the upper right hand corner of the Orin UI change the power-mode to 50W and reboot
 
 # Troubleshooting
