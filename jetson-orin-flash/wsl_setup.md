@@ -19,7 +19,7 @@ In windows install usbipd with the following command
 Afterwards go back to wsl and run
 > sudo apt install linux-tools-generic hwdata
 > 
-> sudo update-alternatives --install /usr/local/bin/usbip usbip `ls /usr/lib/linux-tools/*/usbip | tail -n1` 20
+> sudo update-alternatives --install /usr/local/bin/usbip usbip \`ls /usr/lib/linux-tools/*/usbip | tail -n1\` 20
 
 
 # Step 5; attach the device to wsl
