@@ -27,6 +27,7 @@ This [link](https://learn.microsoft.com/en-us/windows/wsl/connect-usb#attach-a-u
 
 In a Windows terminal, do
 > usbipd list
+
 The device should come up as either
 * APX
 * Remote NDIS Compatible Device, USB Serial Device ...
